@@ -1,0 +1,95 @@
+body, html { 
+    margin: 0; 
+    padding: 0; 
+    height: 100%; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    overflow: hidden; 
+}
+
+.main-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* עיצוב המפה */
+#map { 
+    flex: 1; 
+    height: 100%; 
+    background-color: #e5e5e5; 
+    z-index: 1;
+}
+
+/* עיצוב הפאנל השחור */
+#alert-sidebar {
+    width: 350px;
+    height: 100%;
+    background-color: #1a1a1a;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.5);
+}
+
+.sidebar-header {
+    padding: 25px 15px;
+    background-color: #222;
+    border-bottom: 2px solid #333;
+    text-align: center;
+}
+
+.sidebar-header h2 { 
+    margin: 0 0 10px 0; 
+    color: #ff4444; 
+}
+
+#current-time {
+    color: #aaa;
+    font-size: 1.1em;
+}
+
+#alert-list { 
+    flex: 1; 
+    padding: 15px; 
+    overflow-y: auto; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px; 
+}
+
+/* המלבנים הלבנים של ההתרעות - אזעקה פעילה */
+.alert-card {
+    background: white;
+    color: #333;
+    padding: 15px;
+    border-radius: 6px;
+    border-right: 6px solid #ff4444;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    animation: slideIn 0.3s ease-out;
+}
+
+.city-name { font-weight: bold; font-size: 1.2em; display: block; margin-bottom: 5px; }
+.alert-desc { color: #ff4444; font-weight: 600; font-size: 0.9em; }
+.alert-clock { float: left; color: #888; font-size: 0.85em; font-weight: bold; }
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* עיצוב למצב "האירוע הסתיים" */
+.alert-card.ended {
+    border-right: 6px solid #4CAF50;
+    background-color: #f9fff9;
+}
+
+.alert-card.ended .alert-desc {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.alert-card.ended .city-name {
+    color: #555;
+    text-decoration: line-through;
+}
