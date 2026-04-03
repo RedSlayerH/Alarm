@@ -1,95 +1,406 @@
+/* =========================================
+   הגדרות כלליות ומפה
+   ========================================= */
 body, html { 
     margin: 0; 
     padding: 0; 
     height: 100%; 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
     overflow: hidden; 
+    background: #1e1f22; /* רקע כהה לשוליים אם המפה נטענת לאט */
 }
 
-.main-container {
-    display: flex;
-    height: 100vh;
-    width: 100vw;
-}
-
-/* עיצוב המפה */
+/* המפה תופסת את כל המסך */
 #map { 
-    flex: 1; 
-    height: 100%; 
-    background-color: #e5e5e5; 
-    z-index: 1;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw; 
+    height: 100vh; 
+    z-index: 1; 
 }
 
-/* עיצוב הפאנל השחור */
-#alert-sidebar {
-    width: 350px;
-    height: 100%;
-    background-color: #1a1a1a;
-    color: white;
+/* העלמת הקרדיטים של המפה ל-UI נקי */
+.leaflet-control-attribution, .leaflet-control-zoom {
+    display: none !important;
+}
+
+/* =========================================
+   עיצוב הפאנל הצף (מוכן לגרירה חופשית ופיזיקה)
+   ========================================= */
+#floating-panel {
+    position: absolute;
+    top: 80px;
+    right: 20px; 
+    width: 400px;
+    max-height: calc(100vh - 100px); 
+    background-color: #2b2d31;
+    border-radius: 12px;
+    z-index: 1000;
     display: flex;
     flex-direction: column;
-    z-index: 1000;
-    box-shadow: -2px 0 10px rgba(0,0,0,0.5);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    border: 1px solid #1e1f22;
+    /* אנימציית החזרה למקום כשעוזבים את העכבר */
+    transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                opacity 0.3s ease, 
+                box-shadow 0.3s ease,
+                transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    will-change: top, right, transform;
 }
 
-.sidebar-header {
-    padding: 25px 15px;
-    background-color: #222;
-    border-bottom: 2px solid #333;
-    text-align: center;
+/* אפקט הדיליי וההרמה בזמן הגרירה עצמה! */
+#floating-panel.dragging {
+    /* הדיליי על top ו-right הוא מה שיוצר את ה"רדיפה" אחרי העכבר */
+    transition: top 0.15s ease-out, 
+                right 0.15s ease-out, 
+                box-shadow 0.2s ease, 
+                transform 0.1s linear, 
+                opacity 0.2s ease;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.7);
+    opacity: 0.95;
 }
 
-.sidebar-header h2 { 
-    margin: 0 0 10px 0; 
-    color: #ff4444; 
+/* מצב מוסתר של הפאנל */
+#floating-panel.hidden {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
 }
 
-#current-time {
-    color: #aaa;
-    font-size: 1.1em;
+/* כותרת הפאנל משמשת כידית גרירה */
+.panel-header { 
+    background-color: #ba3232; 
+    padding: 15px 20px; 
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 12px 12px 0 0;
+    cursor: grab;
+    user-select: none;
 }
 
+.panel-header:active {
+    cursor: grabbing;
+}
+
+.panel-header h2 { 
+    margin: 0; 
+    color: white; 
+    font-size: 1.15em; 
+    font-weight: bold; 
+}
+
+/* כפתור כיווץ (החץ למעלה/למטה) */
+#toggle-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2em;
+    cursor: pointer;
+    padding: 0;
+}
+
+/* =========================================
+   רשימת ההתרעות
+   ========================================= */
 #alert-list { 
-    flex: 1; 
     padding: 15px; 
     overflow-y: auto; 
     display: flex; 
     flex-direction: column; 
     gap: 12px; 
+    transition: all 0.3s ease;
 }
 
-/* המלבנים הלבנים של ההתרעות - אזעקה פעילה */
-.alert-card {
-    background: white;
-    color: #333;
+/* עיצוב פס הגלילה (Scrollbar) חמוד ל-Dark Mode */
+#alert-list::-webkit-scrollbar { width: 6px; }
+#alert-list::-webkit-scrollbar-track { background: transparent; }
+#alert-list::-webkit-scrollbar-thumb { background: #1e1f22; border-radius: 10px; }
+#alert-list::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* חיפוש למטה (הכנה לשלב ב') */
+.panel-footer {
     padding: 15px;
+    background-color: #232428;
+    border-radius: 0 0 12px 12px;
+}
+
+.panel-footer input {
+    width: 100%;
+    padding: 10px;
+    background-color: #1e1f22;
+    border: 1px solid #3f4147;
+    color: white;
     border-radius: 6px;
-    border-right: 6px solid #ff4444;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+/* =========================================
+   מצב מכווץ (Collapsed)
+   ========================================= */
+#floating-panel.collapsed #alert-list {
+    overflow: hidden; 
+    padding-bottom: 15px;
+}
+
+
+/* מצב הפאנל כשהוא מכווץ למלבן בלבד */
+#floating-panel.collapsed {
+    height: 180px; /* במקום משהו קטן מאוד */
+    overflow: hidden;
+}
+
+/* כשהפאנל מכווץ - עדיין רואים רשימה קטנה */
+#floating-panel.collapsed #alert-list {
+    overflow-y: auto;
+    max-height: 120px;
+}
+
+/* מסתירים רק את החיפוש */
+#floating-panel.collapsed .panel-footer {
+    display: none;
+}
+
+/* =========================================
+   אנימציית הופעה של כרטיסיות חדשות
+   ========================================= */
+.alert-card {
     animation: slideIn 0.3s ease-out;
 }
-
-.city-name { font-weight: bold; font-size: 1.2em; display: block; margin-bottom: 5px; }
-.alert-desc { color: #ff4444; font-weight: 600; font-size: 0.9em; }
-.alert-clock { float: left; color: #888; font-size: 0.85em; font-weight: bold; }
 
 @keyframes slideIn {
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
 }
 
-/* עיצוב למצב "האירוע הסתיים" */
-.alert-card.ended {
-    border-right: 6px solid #4CAF50;
-    background-color: #f9fff9;
+/* =========================================
+   אפקט זוהר (Glow) ופעימה לפוליגונים במפה
+   ========================================= */
+/* לרקטות (אדום) */
+.glow-red {
+    filter: drop-shadow(0 0 5px rgba(255, 0, 0, 0.8));
+    animation: pulseRed 1.2s infinite alternate ease-in-out;
+    transform-origin: center;
+}
+@keyframes pulseRed {
+    0% { filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.5)); fill-opacity: 0.3; }
+    100% { filter: drop-shadow(0 0 15px rgba(255, 50, 50, 1)); fill-opacity: 0.6; }
 }
 
-.alert-card.ended .alert-desc {
-    color: #4CAF50;
+/* לכלי טיס / כטב"ם (כתום) */
+.glow-orange {
+    filter: drop-shadow(0 0 5px rgba(255, 140, 0, 0.8));
+    animation: pulseOrange 1.2s infinite alternate ease-in-out;
+    transform-origin: center;
+}
+@keyframes pulseOrange {
+    0% { filter: drop-shadow(0 0 4px rgba(255, 140, 0, 0.5)); fill-opacity: 0.3; }
+    100% { filter: drop-shadow(0 0 15px rgba(255, 140, 0, 1)); fill-opacity: 0.6; }
+}
+
+/* =========================================
+   הכפתור השחור הצף (FAB)
+   ========================================= */
+#fab-button {
+    position: absolute;
+    /* המיקום ההתחלתי. ה-JS ישלוט ב-top */
+    top: 80px;
+    right: -70px; /* מוחבא מחוץ למסך בהתחלה */
+    width: 55px;
+    height: 55px;
+    background-color: #1e1f22; 
+    border-radius: 50% 0 0 50%; /* חצי עיגול שנדבק לקיר! */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: grab;
+    box-shadow: -4px 4px 15px rgba(0,0,0,0.6);
+    z-index: 1001;
+    border: 2px solid #3f4147;
+    border-right: none;
+    transition: right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#fab-button:active {
+    cursor: grabbing;
+}
+
+#fab-button svg {
+    width: 28px;
+    height: 28px;
+    fill: white;
+}
+
+#fab-button.visible {
+    right: 0; /* קופץ פנימה ונדבק לקצה המסך */
+}
+
+/* סימן הקריאה האדום על הכפתור השחור */
+#fab-badge {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    background-color: #ff0000;
+    color: white;
+    font-size: 14px;
     font-weight: bold;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: none; /* מוסתר עד שיש אזעקה */
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    border: 2px solid #1e1f22;
 }
 
-.alert-card.ended .city-name {
-    color: #555;
-    text-decoration: line-through;
+#fab-badge.active {
+    display: flex;
+    animation: badgePulse 1s infinite alternate;
+}
+
+@keyframes badgePulse {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.2); }
+}
+
+/* =========================================
+   כפתור משתמש (מעודכן לימין)
+   ========================================= */
+#auth-button {
+    position: absolute;
+    top: 20px;
+    right: 20px; /* שינינו מ-left ל-right */
+    background-color: #2b2d31;
+    color: white;
+    padding: 10px 25px;
+    border-radius: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1001; /* שיהיה תמיד מעל הפאנל */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    border: 1px solid #3f4147;
+    transition: all 0.2s;
+}
+
+#auth-button:hover {
+    background-color: #3f4147;
+}
+
+/* העיצוב של הכפתור כשהוא הופך לתמונת פרופיל (מחובר) */
+#auth-button.logged-in {
+    padding: 0;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%; /* הופך לעיגול מושלם */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#auth-button.logged-in svg {
+    width: 28px;
+    height: 28px;
+    fill: #ccc;
+    margin-top: 4px; /* יישור קטן של הדמות פנימה */
+}
+
+#auth-button.logged-in:hover svg {
+    fill: white;
+}
+
+/* הרקע הכהה מסביב לחלון הקופץ */
+#auth-modal {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.7);
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#auth-modal.hidden {
+    display: none;
+}
+
+.auth-content {
+    background: #1e1f22;
+    padding: 25px;
+    border-radius: 15px;
+    width: 320px;
+    text-align: center;
+    color: white;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px; right: 15px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #888;
+}
+
+.close-btn:hover { color: white; }
+
+.auth-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #333;
+}
+
+.auth-tabs button {
+    flex: 1;
+    background: none; border: none;
+    color: #888; padding: 10px;
+    cursor: pointer; font-weight: bold;
+    font-size: 1em;
+}
+
+.auth-tabs button.active {
+    color: white;
+    border-bottom: 2px solid #388e3c;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.auth-form.hidden { display: none; }
+
+.auth-form input {
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background: #2b2d31;
+    color: white;
+    font-family: inherit;
+}
+
+.submit-btn {
+    padding: 12px;
+    background: #388e3c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1em;
+    margin-top: 5px;
+}
+
+.submit-btn:hover { background: #2e7d32; }
+
+#auth-msg {
+    margin-top: 15px;
+    font-size: 0.9em;
+    min-height: 20px;
+    font-weight: bold;
 }
