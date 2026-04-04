@@ -176,30 +176,6 @@ body, html {
     to { transform: translateX(0); opacity: 1; }
 }
 
-/* =========================================
-   אפקט זוהר (Glow) ופעימה לפוליגונים במפה
-   ========================================= */
-/* לרקטות (אדום) */
-.glow-red {
-    filter: drop-shadow(0 0 5px rgba(255, 0, 0, 0.8));
-    animation: pulseRed 1.2s infinite alternate ease-in-out;
-    transform-origin: center;
-}
-@keyframes pulseRed {
-    0% { filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.5)); fill-opacity: 0.3; }
-    100% { filter: drop-shadow(0 0 15px rgba(255, 50, 50, 1)); fill-opacity: 0.6; }
-}
-
-/* לכלי טיס / כטב"ם (כתום) */
-.glow-orange {
-    filter: drop-shadow(0 0 5px rgba(255, 140, 0, 0.8));
-    animation: pulseOrange 1.2s infinite alternate ease-in-out;
-    transform-origin: center;
-}
-@keyframes pulseOrange {
-    0% { filter: drop-shadow(0 0 4px rgba(255, 140, 0, 0.5)); fill-opacity: 0.3; }
-    100% { filter: drop-shadow(0 0 15px rgba(255, 140, 0, 1)); fill-opacity: 0.6; }
-}
 
 /* =========================================
    הכפתור השחור הצף (FAB)
@@ -403,4 +379,54 @@ body, html {
     font-size: 0.9em;
     min-height: 20px;
     font-weight: bold;
+}
+
+/* האנימציה שגורמת לצבע להבהב ולזרוח */
+@keyframes glow-animation-red {
+    0% { filter: drop-shadow(0 0 2px red); fill-opacity: 0.8; }
+    50% { filter: drop-shadow(0 0 15px red); fill-opacity: 0.3; }
+    100% { filter: drop-shadow(0 0 2px red); fill-opacity: 0.8; }
+}
+
+@keyframes glow-animation-orange {
+    0% { filter: drop-shadow(0 0 2px darkorange); fill-opacity: 0.8; }
+    50% { filter: drop-shadow(0 0 15px darkorange); fill-opacity: 0.3; }
+    100% { filter: drop-shadow(0 0 2px darkorange); fill-opacity: 0.8; }
+}
+
+/* המחלקות שהסקריפט שלך מדליק ומכבה אוטומטית */
+.glow-red {
+    animation: glow-animation-red 1.5s infinite alternate !important;
+}
+
+.glow-orange {
+    animation: glow-animation-orange 1.5s infinite alternate !important;
+}
+
+/* =========================================
+   התרעה מקדימה (צבע אדום-בורדו של פיקוד העורף)
+   ========================================= */
+.alert-card.early {
+    background-color: #2b2d31; /* או רקע לבן אם ככה העיצוב שלך */
+    border-right: 35px solid #b71111; /* פס אדום-כהה רחב מספיק בשביל האייקון */
+    position: relative;
+}
+
+/* הטקסט הצהוב קצת פחות קריא, בוא נשנה אותו לכתום-אדמדם שיתאים לאווירה */
+.alert-card.early b {
+    color: #ff6b6b !important;
+}
+
+/* לכלי טיס התרעה מקדימה (חום/כתום כהה) */
+/* =========================================
+   אפקט פעימה לפוליגונים - התרעה מקדימה (בורדו/חום)
+   ========================================= */
+.glow-brown {
+    animation: glow-animation-brown 1.5s infinite alternate !important;
+}
+
+@keyframes glow-animation-brown {
+    0% { filter: drop-shadow(0 0 2px #0d13b8); fill-opacity: 0.4; }
+    50% { filter: drop-shadow(0 0 15px #0d13b8); fill-opacity: 0.1; }
+    100% { filter: drop-shadow(0 0 2px #0d13b8); fill-opacity: 0.4; }
 }
