@@ -183,6 +183,12 @@ setInterval(() => {
                 pathElement.classList.remove('glow-red', 'glow-orange');
                 if (!pathElement.classList.contains(glowClass)) pathElement.classList.add(glowClass);
             }
+        if (elapsedMins >= 10) {
+            if (map.hasLayer(layer)) map.removeLayer(layer);
+            delete activeMapLayers[city];
+            delete cityAlertTimes[city];
+            return;
+        }
         } else {
             // אזעקה רגילה (טילים/כטב"ם) - מהבהבת לשתי דקות, אדום חלק, ואז אפור
             if (elapsedMins < 2) {
@@ -451,34 +457,33 @@ async function updateUI() {
                         }
                     }
                     
-                } else {
-                    // סיום אירוע ירוק - כאן נמצא התיקון שמוציא אזורים!
-                    iconsHtml = typeof iconCheck !== 'undefined' ? iconCheck : '✓';
-                    mainTitleText = event.titles && event.titles.length > 0 ? event.titles[0] : 'עדכון פיקוד העורף';
-                    colorTheme = '#388e3c'; 
+   } else {
+    // סיום אירוע ירוק
+    iconsHtml = typeof iconCheck !== 'undefined' ? iconCheck : '✓';
+    mainTitleText = event.titles && event.titles.length > 0 ? event.titles[0] : 'עדכון פיקוד העורף';
+    colorTheme = '#388e3c';
 
-                    const placesArray = (event.text || '').split(',').map(c => c.trim()).filter(c => c !== '');
-                    const regionsSet = new Set();
-                    
-                    placesArray.forEach(c => {
-                        const reg = typeof getRegion === 'function' ? getRegion(c) : null;
-                        if (reg) {
-                            regionsSet.add(reg);
-                        } else {
-                            regionsSet.add(c);
-                        }
-                    });
-                    
-                    const regionsArray = Array.from(regionsSet);
+    const serverText = (event.text || '').trim();
+    const parts = serverText.split(',').map(s => s.trim()).filter(Boolean);
 
-                    if (regionsArray.length > 1) {
-                        citiesString = "האירוע הסתיים באזורים: <span style='font-weight:bold;'>" + regionsArray.join(', ') + "</span>";
-                    } else if (regionsArray.length === 1) {
-                        citiesString = "האירוע הסתיים באזור <span style='font-weight:bold;'>" + regionsArray[0] + "</span>";
-                    } else {
-                        citiesString = "האירוע הסתיים.";
-                    }
-                }
+    if (parts.length > 1) {
+        // כמה מקומות → "באזורים"
+        citiesString = `האירוע הסתיים באזורים: <b>${serverText}</b>`;
+    } else if (parts.length === 1) {
+        const place = parts[0];
+        const isKnownCity = !!getRegion(place); // משתמש במיפוי שלך כדי לזהות יישוב
+        if (isKnownCity) {
+            // נכון בעברית: "האירוע הסתיים בכפר גלעדי" (ה"ב" מחוברת למילה)
+            // כאן השארנו את ה"ב" מחוץ ל-bold; אם תרצה שהיא תהפוך לחלק מה-bold, השתמש ב- <b>ב${place}</b>
+            citiesString = `האירוע הסתיים ב<b>${place}</b>`;
+        } else {
+            // כנראה כבר שם אזור כללי
+            citiesString = `האירוע הסתיים באזור <b>${place}</b>`;
+        }
+    } else {
+        citiesString = "האירוע הסתיים.";
+    }
+}
 
                 if (!card) {
                     card = document.createElement('div');

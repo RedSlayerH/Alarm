@@ -28,7 +28,11 @@ let mapCircles = {};
 let cityToRegion = {};
 
 const earlyWarningTimers = {}; 
-const EARLY_WARNING_TIMEOUT = 3 * 60 * 1000; // 3 דקות להתרעה מקדימה
+// --- התוספת החדשה: טיימרים לכטב"מים ---
+const droneWarningTimers = {}; 
+const DRONE_TIMEOUT = 20 * 60 * 1000; // 20 דקות
+
+const EARLY_WARNING_TIMEOUT = 3 * 60 * 1000; 
 const GROUPING_TIME_WINDOW = 4 * 60 * 1000;
 const CLEAR_MERGE_WINDOW = 5 * 60 * 1000; 
 const ROCKET_COOLDOWN_TIME = 10 * 60 * 1000;
@@ -53,7 +57,7 @@ function generateSmartClearText(citiesArray) {
     if (uniqueCities.length === 0) return 'האירוע הסתיים';
     
     if (uniqueCities.length <= 3) {
-        return `האירוע הסתיים ב- <b style="color: #000;">${uniqueCities.join(', ')}</b>`;
+        return `${uniqueCities.join(', ')}`; // ✅ רק שמות היישובים!
     } else {
         const regionsSet = new Set();
         uniqueCities.forEach(city => {
@@ -61,9 +65,14 @@ function generateSmartClearText(citiesArray) {
             if (region) regionsSet.add(region);
         });
         const regions = Array.from(regionsSet);
-        if (regions.length === 0) return `האירוע הסתיים ב- <b style="color: #000;">${uniqueCities.join(', ')}</b>`; 
-        if (regions.length === 1) return `האירוע הסתיים באזור- <b style="color: #000;">${regions[0]}</b>`;
-        return `האירוע הסתיים באזורים- <b style="color: #000;">${regions.join(', ')}</b>`;
+        
+        if (regions.length === 0) {
+            return `${uniqueCities.join(', ')}`; // ✅ רק שמות היישובים!
+        }
+        if (regions.length === 1) {
+            return `${regions[0]}`; // ✅ רק שם האזור!
+        }
+        return `${regions.join(', ')}`; // ✅ רק שמות האזורים!
     }
 }
 
@@ -221,6 +230,11 @@ async function pollOref() {
                 currentCities.forEach(city => {
                     delete mapCircles[city]; 
                     if (earlyWarningTimers[city]) clearTimeout(earlyWarningTimers[city]); 
+                    // --- מנקה גם את טיימר הכטב"ם אם התקבל שחרור ---
+                    if (droneWarningTimers[city]) {
+                        clearTimeout(droneWarningTimers[city]);
+                        delete droneWarningTimers[city];
+                    }
                 });
                 addOrMergeClearEvent(currentCities);
                 return; 
@@ -243,13 +257,27 @@ async function pollOref() {
                 });
             }
 
-            // === התיקון הקריטי: החלפנו את citiesQuery שהיה גורם לקריסה! ===
             currentCities.forEach(city => {
                 const cleanCity = city.trim();
                 if (earlyWarningTimers[cleanCity]) clearTimeout(earlyWarningTimers[cleanCity]);
+                
                 mapCircles[cleanCity] = { status: 'active', type: alertTitle, timestamp: now };
 
-                if (alertTitle.includes('רקטות') || alertTitle.includes('טילים')) {
+                // --- הלוגיקה החדשה: כטב"מים מקבלים 20 דקות ---
+                if (alertTitle.includes('טיס') || alertTitle.includes('כטב"ם')) {
+                    if (droneWarningTimers[cleanCity]) clearTimeout(droneWarningTimers[cleanCity]);
+                    
+                    droneWarningTimers[cleanCity] = setTimeout(() => {
+                        // אם עברו 20 דקות והעיר עדיין מסומנת ככטב"ם - נמחק ונוסיף הודעת שחרור
+                        if (mapCircles[cleanCity] && (mapCircles[cleanCity].type.includes('טיס') || mapCircles[cleanCity].type.includes('כטב"ם'))) {
+                            delete mapCircles[cleanCity];
+                            addOrMergeClearEvent([cleanCity]);
+                        }
+                        delete droneWarningTimers[cleanCity];
+                    }, DRONE_TIMEOUT);
+                } 
+                // --- רקטות מקבלות 10 דקות (כמו שהיה) ---
+                else if (alertTitle.includes('רקטות') || alertTitle.includes('טילים')) {
                     earlyWarningTimers[cleanCity] = setTimeout(() => {
                         if (mapCircles[cleanCity] && mapCircles[cleanCity].timestamp === now) {
                             delete mapCircles[cleanCity];
