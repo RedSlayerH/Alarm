@@ -1,0 +1,472 @@
+/* ============================================================
+   soundPanel.css  – עיצוב לוח הצלילים
+   כפתור עיגול + פאנל + חיפוש ערים + העלאת שיר
+   ============================================================ */
+
+/* ============================================================
+   כפתור העיגול הצידי (שמאל)
+   ============================================================ */
+
+#sound-fab {
+    position: fixed;
+    left: 20px;
+    top: 20px;
+    width: 52px;
+    height: 52px;
+    background: #2b2d31;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 1002;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.55);
+    border: 2px solid #3f4147;
+    transition: left 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                box-shadow 0.2s ease,
+                background 0.2s ease;
+    user-select: none;
+}
+
+#sound-fab:hover {
+    background: #3f4147;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+}
+
+#sound-fab svg {
+    width: 26px;
+    height: 26px;
+    fill: #d0d0d0;
+    pointer-events: none;
+}
+
+/* מצב מוסתר – הסתחב שמאלה, נשאר רק קצה */
+#sound-fab.hidden-left {
+    left: -60px;
+}
+
+/* ============================================================
+   לשונית השחזור (מלבן שקוף שבולט מהשמאל)
+   ============================================================ */
+
+#sound-restore-tab {
+    position: fixed;
+    left: 0;
+    top: 20px;
+    transform: none;
+    width: 22px;
+    height: 60px;
+    background: rgba(43, 45, 49, 0.55);
+    border-radius: 0 8px 8px 0;
+    border: 1px solid rgba(63, 65, 71, 0.6);
+    border-left: none;
+    cursor: pointer;
+    z-index: 1002;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    transition: background 0.2s ease, width 0.2s ease;
+}
+
+#sound-restore-tab:hover {
+    background: rgba(63, 65, 71, 0.75);
+    width: 26px;
+}
+
+#sound-restore-tab.visible {
+    display: flex;
+}
+
+/* חץ קטן בפנים */
+#sound-restore-tab::after {
+    content: '›';
+    color: rgba(200,200,200,0.8);
+    font-size: 16px;
+    line-height: 1;
+}
+
+/* ============================================================
+   הפאנל הראשי
+   ============================================================ */
+
+#sound-panel {
+    position: fixed;
+    left: 85px;
+    top: 20px;
+    transform: none;
+    width: 300px;
+    background: linear-gradient(160deg, #dce8f5 0%, #c8dff0 40%, #b8d4ec 100%);
+    border-radius: 16px;
+    z-index: 1001;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+#sound-panel.sp-hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.94);
+}
+
+/* ============================================================
+   שורת האייקונים
+   ============================================================ */
+
+.sp-icons-row {
+    display: flex;
+    align-items: stretch;
+    background: rgba(255,255,255,0.35);
+    border-bottom: 1px solid rgba(255,255,255,0.5);
+}
+
+.sp-icon-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 6px 8px;
+    cursor: pointer;
+    transition: background 0.18s ease, opacity 0.18s ease;
+    opacity: 0.45;
+    gap: 4px;
+    border: none;
+    background: transparent;
+    position: relative;
+}
+
+.sp-icon-btn.active {
+    opacity: 1;
+    background: rgba(255,255,255,0.45);
+}
+
+.sp-icon-btn:hover {
+    opacity: 0.8;
+    background: rgba(255,255,255,0.3);
+}
+
+.sp-icon-btn svg {
+    width: 26px;
+    height: 26px;
+}
+
+.sp-icon-label {
+    font-size: 9.5px;
+    font-weight: 600;
+    color: #2a3a55;
+    text-align: center;
+    line-height: 1.2;
+    letter-spacing: 0.2px;
+}
+
+/* מפריד אנכי בין אייקונים */
+.sp-icon-btn + .sp-icon-btn::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    height: 60%;
+    width: 1px;
+    background: rgba(100,130,180,0.35);
+}
+
+/* אינדיקטור שיר פעיל (נקודה ירוקה) */
+.sp-icon-btn .sp-song-dot {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #2ecc71;
+    display: none;
+    box-shadow: 0 0 4px rgba(46,204,113,0.7);
+}
+
+.sp-icon-btn.has-song .sp-song-dot {
+    display: block;
+}
+
+/* ============================================================
+   גוף הפאנל
+   ============================================================ */
+
+.sp-body {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+
+/* ============================================================
+   תיבת חיפוש
+   ============================================================ */
+
+.sp-search-wrap {
+    position: relative;
+}
+
+.sp-search-input {
+    width: 100%;
+    padding: 9px 12px 9px 36px;
+    border-radius: 20px;
+    border: 1.5px solid rgba(100,150,210,0.4);
+    background: rgba(255,255,255,0.7);
+    color: #1a2a40;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+    direction: rtl;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.sp-search-input:focus {
+    border-color: rgba(80,130,200,0.7);
+    box-shadow: 0 0 0 3px rgba(80,130,200,0.15);
+    background: rgba(255,255,255,0.9);
+}
+
+.sp-search-input::placeholder {
+    color: #8899b0;
+}
+
+/* אייקון חיפוש */
+.sp-search-icon {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    fill: #7a90aa;
+    pointer-events: none;
+}
+
+/* ============================================================
+   רשימת הצעות
+   ============================================================ */
+
+.sp-suggestions {
+    background: #1e2128;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    display: none;
+    flex-direction: column;
+    margin-top: -4px;
+}
+
+.sp-suggestions.visible {
+    display: flex;
+}
+
+.sp-suggestion-item {
+    padding: 9px 14px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    transition: background 0.15s;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    direction: rtl;
+}
+
+.sp-suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.sp-suggestion-item:hover {
+    background: rgba(255,255,255,0.08);
+}
+
+.sp-suggestion-city {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e8edf5;
+}
+
+.sp-suggestion-zone {
+    font-size: 11px;
+    color: #7a90aa;
+}
+
+/* ============================================================
+   תגיות ערים שנבחרו
+   ============================================================ */
+
+.sp-tags-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 10px;
+    max-height: 110px;
+    overflow-y: auto;
+    padding: 2px 0;
+}
+
+.sp-tags-wrap::-webkit-scrollbar { width: 4px; }
+.sp-tags-wrap::-webkit-scrollbar-track { background: transparent; }
+.sp-tags-wrap::-webkit-scrollbar-thumb { background: rgba(80,120,180,0.3); border-radius: 4px; }
+
+.sp-tag {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #1a2535;
+    color: #d0dff0;
+    border-radius: 20px;
+    padding: 4px 10px 4px 7px;
+    font-size: 12px;
+    font-weight: 500;
+    direction: rtl;
+    animation: tagPop 0.2s ease-out;
+}
+
+@keyframes tagPop {
+    from { transform: scale(0.75); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+}
+
+.sp-tag-remove {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    border: none;
+    color: #99aac0;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+}
+
+.sp-tag-remove:hover {
+    background: rgba(220,60,60,0.35);
+    color: #ff8080;
+}
+
+/* ============================================================
+   אזור שיר
+   ============================================================ */
+
+.sp-song-section {
+    border-top: 1px solid rgba(100,140,200,0.25);
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sp-song-label {
+    font-size: 11.5px;
+    color: #3a5070;
+    font-weight: 600;
+    text-align: right;
+    direction: rtl;
+}
+
+/* שם השיר הנוכחי */
+.sp-current-song {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 10px;
+    padding: 7px 10px;
+    direction: rtl;
+    display: none;
+}
+
+.sp-current-song.visible {
+    display: flex;
+}
+
+.sp-current-song-icon {
+    width: 18px;
+    height: 18px;
+    fill: #2a6090;
+    flex-shrink: 0;
+}
+
+.sp-current-song-name {
+    font-size: 12px;
+    color: #1a3050;
+    font-weight: 500;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sp-delete-song-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    color: #7a90aa;
+    font-size: 16px;
+    line-height: 1;
+    transition: color 0.15s;
+}
+
+.sp-delete-song-btn:hover { color: #e05050; }
+
+/* כפתור העלאה */
+.sp-upload-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px;
+    background: rgba(40, 80, 140, 0.18);
+    border: 2px dashed rgba(80,130,200,0.4);
+    border-radius: 10px;
+    color: #2a4a75;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    font-family: inherit;
+}
+
+.sp-upload-btn:hover {
+    background: rgba(40,80,140,0.28);
+    border-color: rgba(80,130,200,0.7);
+}
+
+.sp-upload-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: #2a4a75;
+}
+
+/* input קובץ מוסתר */
+#sp-file-input {
+    display: none;
+}
+
+/* הודעת סטטוס */
+.sp-upload-status {
+    font-size: 11.5px;
+    text-align: center;
+    color: #2a6040;
+    min-height: 16px;
+    direction: rtl;
+}
+
+.sp-upload-status.error {
+    color: #aa2020;
+}

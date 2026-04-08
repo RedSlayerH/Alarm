@@ -3,81 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מפת אזעקות חיה - גרסה 2</title>
+    <title>מפת אזעקות חיה</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="client/css/style.css">
+    <!-- לוח הצלילים -->
+    <link rel="stylesheet" href="client/css/soundPanel.css">
 </head>
 <body>
 
     <div id="map"></div>
 
-    <!-- הפאנל הצף -->
+    <!-- פאנל צף -->
     <div id="floating-panel" class="expanded">
-        <!-- הכותרת עכשיו משמשת גם לכיווץ בלחיצה, וגם לגרירה ימינה! -->
         <div class="panel-header">
             <h2>התרעות ב-24 שעות האחרונות</h2>
             <button id="toggle-btn">▼</button>
         </div>
-        
         <div id="alert-list"></div>
-        
-       <div class="panel-footer">
-    <form autocomplete="off">
-        <!-- שדה פייק כדי לבלבל את כרום -->
-        <input type="text" name="fake-user" style="display:none">
-
-        <!-- השדה האמיתי -->
-       <input 
-    id="city-search"
-    type="search"
-    name="search-field-xyz"
-    placeholder="חיפוש יישוב..." 
-    autocomplete="off" 
-    autocorrect="off" 
-    autocapitalize="off" 
-    spellcheck="false"
->
-    </form>
-</div>
+        <div class="panel-footer">
+            <form autocomplete="off">
+                <input type="text" name="fake-user" style="display:none">
+                <input id="city-search" type="search" name="search-xyz"
+                       placeholder="חיפוש יישוב..."
+                       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            </form>
+        </div>
     </div>
 
-    <!-- הכפתור השחור הצף (מוסתר בהתחלה) -->
+    <!-- כפתור FAB (מוסתר בהתחלה) -->
     <div id="fab-button">
-        <!-- סמל האנטנה (Siren) -->
         <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
-        <!-- סימן הקריאה הקופץ -->
         <div id="fab-badge">!</div>
     </div>
 
-    <div id="auth-button" onclick="openAuthModal()">כניסת משתמש</div>
+    <!-- כפתור משתמש -->
+   <div id="auth-button" style="visibility:hidden">כניסת משתמש</div>
 
+    <!-- Modal התחברות -->
     <div id="auth-modal" class="hidden">
         <div class="auth-content">
             <span class="close-btn" onclick="closeAuthModal()">&times;</span>
-            
             <div class="auth-tabs">
                 <button id="tab-login" class="active" onclick="switchAuthTab('login')">משתמש קיים</button>
                 <button id="tab-register" onclick="switchAuthTab('register')">משתמש חדש</button>
             </div>
-            
             <div id="form-login" class="auth-form">
                 <input type="text" id="login-user" placeholder="שם משתמש">
                 <input type="password" id="login-pass" placeholder="סיסמה">
                 <button class="submit-btn" onclick="submitAuth('login')">היכנס</button>
             </div>
-
             <div id="form-register" class="auth-form hidden">
                 <input type="text" id="reg-user" placeholder="בחר שם משתמש">
                 <input type="password" id="reg-pass" placeholder="סיסמה">
                 <input type="password" id="reg-pass2" placeholder="אימות סיסמה">
                 <button class="submit-btn" onclick="submitAuth('register')">צור משתמש</button>
             </div>
-            
             <div id="auth-msg"></div>
         </div>
     </div>
 
+    <!-- פאנל משתמש -->
+    <div id="user-panel" class="hidden">
+        <div class="user-panel-content">
+            <span class="close-btn user-panel-close" onclick="closeUserPanel()">&times;</span>
+            <div class="user-panel-body">
+                <!-- תוכן עתידי -->
+            </div>
+            <div class="user-panel-footer">
+                <button class="user-panel-logout-btn" onclick="logout()">יציאה</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ספריות -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="script.js"></script>
+
+    <!--
+        סדר הטעינה חשוב!
+        1. map.js       – מגדיר drawCityOnMap, updateMapFromServer, syncAllGlows
+        2. ui.js        – מגדיר mergeHistoryForDisplay, renderAlertList
+        3. panel.js     – מגדיר isPanelHidden, toggleCollapse וכו'
+        4. auth.js      – מגדיר openAuthModal, submitAuth וכו'
+        5. soundPanel.js– לוח הצלילים (לפני main.js!)
+        6. main.js      – משתמש בכולם, מתחיל את ה-polling
+    -->
+    <script src="client/js/map.js"></script>
+    <script src="client/js/ui.js"></script>
+    <script src="client/js/panel.js"></script>
+    <script src="client/js/auth.js"></script>
+    <script src="client/js/soundPanel.js"></script>
+    <script src="client/js/main.js"></script>
 </body>
 </html>

@@ -1,0 +1,400 @@
+/* =========================================
+   style.css – זהה למקור, רק הועתק למיקום החדש
+   אם תרצה לשנות עיצוב – רק כאן
+   ========================================= */
+
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    background: #1e1f22;
+}
+
+#map {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: 1;
+}
+
+.leaflet-control-attribution, .leaflet-control-zoom { display: none !important; }
+
+/* =========================================
+   פאנל צף
+   ========================================= */
+#floating-panel {
+    position: absolute;
+    top: 80px; right: 20px;
+    width: 400px;
+    max-height: calc(100vh - 100px);
+    background-color: #2b2d31;
+    border-radius: 12px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    border: 1px solid #1e1f22;
+    transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                opacity 0.3s ease,
+                box-shadow 0.3s ease,
+                transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    will-change: top, right, transform;
+}
+
+#floating-panel.dragging {
+    transition: top 0.15s ease-out, right 0.15s ease-out,
+                box-shadow 0.2s ease, transform 0.1s linear, opacity 0.2s ease;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.7);
+    opacity: 0.95;
+}
+
+#floating-panel.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+
+.panel-header {
+    background-color: #ba3232;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 12px 12px 0 0;
+    cursor: grab;
+    user-select: none;
+}
+.panel-header:active { cursor: grabbing; }
+.panel-header h2 { margin: 0; color: white; font-size: 1.15em; font-weight: bold; }
+
+#toggle-btn { background: none; border: none; color: white; font-size: 1.2em; cursor: pointer; padding: 0; }
+
+/* =========================================
+   רשימת התרעות
+   ========================================= */
+#alert-list {
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.3s ease;
+}
+#alert-list::-webkit-scrollbar { width: 6px; }
+#alert-list::-webkit-scrollbar-track { background: transparent; }
+#alert-list::-webkit-scrollbar-thumb { background: #1e1f22; border-radius: 10px; }
+#alert-list::-webkit-scrollbar-thumb:hover { background: #555; }
+
+.panel-footer {
+    padding: 15px;
+    background-color: #232428;
+    border-radius: 0 0 12px 12px;
+}
+.panel-footer input {
+    width: 100%;
+    padding: 10px;
+    background-color: #1e1f22;
+    border: 1px solid #3f4147;
+    color: white;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+/* =========================================
+   מצב מכווץ
+   ========================================= */
+#floating-panel.collapsed { height: 180px; overflow: hidden; }
+#floating-panel.collapsed #alert-list { overflow-y: auto; max-height: 120px; padding-bottom: 15px; }
+#floating-panel.collapsed .panel-footer { display: none; }
+
+/* =========================================
+   אנימציית כניסת כרטיסייה
+   ========================================= */
+.alert-card { animation: slideIn 0.3s ease-out; }
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* =========================================
+   כפתור FAB
+   ========================================= */
+#fab-button {
+    position: absolute;
+    top: 80px; right: -70px;
+    width: 55px; height: 55px;
+    background-color: #1e1f22;
+    border-radius: 50% 0 0 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: grab;
+    box-shadow: -4px 4px 15px rgba(0,0,0,0.6);
+    z-index: 1001;
+    border: 2px solid #3f4147;
+    border-right: none;
+    transition: right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#fab-button:active { cursor: grabbing; }
+#fab-button svg { width: 28px; height: 28px; fill: white; }
+#fab-button.visible { right: 0; }
+
+#fab-badge {
+    position: absolute;
+    top: -5px; left: -5px;
+    background-color: #ff0000;
+    color: white;
+    font-size: 14px; font-weight: bold;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    border: 2px solid #1e1f22;
+}
+#fab-badge.active { display: flex; animation: badgePulse 1s infinite alternate; }
+@keyframes badgePulse {
+    0%   { transform: scale(1);   }
+    100% { transform: scale(1.2); }
+}
+
+/* =========================================
+   כפתור Auth
+   ========================================= */
+#auth-button {
+    position: absolute;
+    top: 20px; right: 20px;
+    background-color: #2b2d31;
+    color: white;
+    padding: 10px 25px;
+    border-radius: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1001;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    border: 1px solid #3f4147;
+    transition: all 0.2s;
+}
+#auth-button:hover { background-color: #3f4147; }
+#auth-button.logged-in {
+    padding: 0; width: 45px; height: 45px;
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+}
+#auth-button.logged-in svg { width: 28px; height: 28px; fill: #ccc; margin-top: 4px; }
+#auth-button.logged-in:hover svg { fill: white; }
+
+/* =========================================
+   Auth Modal
+   ========================================= */
+#auth-modal {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.7);
+    z-index: 2000;
+    display: flex; justify-content: center; align-items: center;
+}
+#auth-modal.hidden { display: none; }
+.auth-content {
+    background: #1e1f22;
+    padding: 25px; border-radius: 15px;
+    width: 320px; text-align: center; color: white;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+}
+.close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #888; }
+.close-btn:hover { color: white; }
+.auth-tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #333; }
+.auth-tabs button { flex: 1; background: none; border: none; color: #888; padding: 10px; cursor: pointer; font-weight: bold; font-size: 1em; }
+.auth-tabs button.active { color: white; border-bottom: 2px solid #388e3c; }
+.auth-form { display: flex; flex-direction: column; gap: 12px; }
+.auth-form.hidden { display: none; }
+.auth-form input { padding: 12px; border-radius: 8px; border: none; background: #2b2d31; color: white; font-family: inherit; }
+.submit-btn { padding: 12px; background: #388e3c; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1em; margin-top: 5px; }
+.submit-btn:hover { background: #2e7d32; }
+#auth-msg { margin-top: 15px; font-size: 0.9em; min-height: 20px; font-weight: bold; }
+
+/* =========================================
+   אנימציות Glow לפוליגונים
+   ========================================= */
+@keyframes glow-animation-red {
+    0%   { stroke: red;        stroke-width: 2px; stroke-opacity: 1;   fill-opacity: 0.7; }
+    50%  { stroke: red;        stroke-width: 7px; stroke-opacity: 0.5; fill-opacity: 0.15; }
+    100% { stroke: red;        stroke-width: 2px; stroke-opacity: 1;   fill-opacity: 0.7; }
+}
+@keyframes glow-animation-orange {
+    0%   { stroke: darkorange; stroke-width: 2px; stroke-opacity: 1;   fill-opacity: 0.7; }
+    50%  { stroke: darkorange; stroke-width: 7px; stroke-opacity: 0.5; fill-opacity: 0.15; }
+    100% { stroke: darkorange; stroke-width: 2px; stroke-opacity: 1;   fill-opacity: 0.7; }
+}
+@keyframes glow-animation-brown {
+    0%   { stroke: #3a40e0;   stroke-width: 2px; stroke-opacity: 1;   fill-opacity: 0.4; }
+    50%  { stroke: #3a40e0;   stroke-width: 7px; stroke-opacity: 0.5; fill-opacity: 0.1; }
+    100% { stroke: #3a40e0;   stroke-width: 2px; stroke-opacity: 1;   fill-opacity: 0.4; }
+}
+.glow-red    { animation: glow-animation-red    1.2s infinite alternate !important; }
+.glow-orange { animation: glow-animation-orange 1.2s infinite alternate !important; }
+.glow-brown  { animation: glow-animation-brown  1.2s infinite alternate !important; }
+
+
+/* =========================================
+   פאנל משתמש (מסך מרכזי)
+   ========================================= */
+#user-panel {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.7);
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+#user-panel.hidden { display: none; }
+
+.user-panel-content {
+    background: #1e1f22;
+    border-radius: 15px;
+    width: 360px;
+    height: 480px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    border: 1px solid #3f4147;
+    overflow: hidden;
+    position: relative;
+}
+
+.user-panel-body {
+    flex: 1;
+    padding: 20px;
+    /* ריק — תוכן עתידי */
+}
+
+.user-panel-footer {
+    padding: 20px;
+    border-top: 1px solid #3f4147;
+    display: flex;
+    justify-content: center;
+}
+
+/* כפתור X לסגירת פאנל המשתמש */
+.user-panel-close {
+    position: absolute;
+    top: 12px;
+    right: 15px;
+}
+
+.user-panel-logout-btn {
+    width: 100%;
+    padding: 12px;
+    background: #ba3232;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1em;
+    font-family: inherit;
+    transition: background 0.2s;
+}
+.user-panel-logout-btn:hover { background: #9b2626; }
+
+
+/* =========================================
+   Auth transition animation overlay
+   ========================================= */
+
+#auth-anim-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at center, #0d1b2e 0%, #060c18 100%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: all;
+}
+
+#auth-anim-overlay.auth-anim-visible {
+    opacity: 1;
+}
+
+#auth-anim-overlay.auth-anim-exit {
+    opacity: 0;
+    transition: opacity 0.55s ease;
+}
+
+/* Stars background */
+.auth-stars-bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.auth-star {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0;
+    animation: auth-star-twinkle 2s ease-in-out infinite;
+}
+
+@keyframes auth-star-twinkle {
+    0%   { opacity: 0;   transform: scale(0.5); }
+    40%  { opacity: 1;   transform: scale(1.2); }
+    70%  { opacity: 0.7; transform: scale(1);   }
+    100% { opacity: 0;   transform: scale(0.5); }
+}
+
+/* Center content */
+.auth-anim-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    animation: auth-content-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s both;
+}
+
+@keyframes auth-content-pop {
+    from { transform: scale(0.6) translateY(30px); opacity: 0; }
+    to   { transform: scale(1)   translateY(0);    opacity: 1; }
+}
+
+.auth-anim-icon {
+    font-size: 64px;
+    filter: drop-shadow(0 0 20px rgba(255,255,255,0.4));
+    animation: auth-icon-float 1.8s ease-in-out infinite;
+}
+
+@keyframes auth-icon-float {
+    0%, 100% { transform: translateY(0);    }
+    50%       { transform: translateY(-10px); }
+}
+
+.auth-anim-msg {
+    font-size: 2.2em;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 0 30px rgba(120, 180, 255, 0.8),
+                 0 0 60px rgba(80, 140, 255, 0.4);
+    letter-spacing: 1px;
+    direction: rtl;
+    text-align: center;
+}
+
+.auth-anim-sub {
+    font-size: 1em;
+    color: rgba(180, 210, 255, 0.7);
+    direction: rtl;
+    text-align: center;
+    animation: auth-sub-pulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes auth-sub-pulse {
+    from { opacity: 0.5; }
+    to   { opacity: 1;   }
+}

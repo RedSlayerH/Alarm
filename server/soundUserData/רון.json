@@ -1,0 +1,14 @@
+{
+  "alert": {
+    "cities": [],
+    "songFile": "רון_alert_1775642628487.wav"
+  },
+  "early": {
+    "cities": [],
+    "songFile": null
+  },
+  "clear": {
+    "cities": [],
+    "songFile": null
+  }
+}
