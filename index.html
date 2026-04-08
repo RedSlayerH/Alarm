@@ -21,12 +21,14 @@
         </div>
         <div id="alert-list"></div>
         <div class="panel-footer">
-            <form autocomplete="off">
-                <input type="text" name="fake-user" style="display:none">
-                <input id="city-search" type="search" name="search-xyz"
+            <div autocomplete="off">
+                <!-- dummy hidden fields to prevent Chrome autofill -->
+                <input type="text" style="display:none" aria-hidden="true">
+                <input type="password" style="display:none" aria-hidden="true">
+                <input id="city-search" type="search"
                        placeholder="חיפוש יישוב..."
                        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-            </form>
+            </div>
         </div>
     </div>
 
@@ -87,6 +89,7 @@
         5. soundPanel.js– לוח הצלילים (לפני main.js!)
         6. main.js      – משתמש בכולם, מתחיל את ה-polling
     -->
+    <script src="client/js/config.client.js"></script>
     <script src="client/js/map.js"></script>
     <script src="client/js/ui.js"></script>
     <script src="client/js/panel.js"></script>

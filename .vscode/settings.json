@@ -1,6 +1,8 @@
 {
     "liveServer.settings.ignoreFiles": [
+        "server/sounds/**",
         "server/soundUserData/**",
         "server/users.json"
     ]
 }
+

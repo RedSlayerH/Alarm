@@ -261,5 +261,4 @@ module.exports = {
     isEarlyWarningTitle,
     isClearTitle,
     getThreatCategory,
-    buildClearText,
 };

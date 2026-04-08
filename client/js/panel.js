@@ -128,8 +128,11 @@ function dismissPanel(lastTop) {
     panel.style.right   = '-420px';
     panel.style.opacity = 0;
 
+    // Clamp so the FAB never appears above the allowed minimum
+    const clampedTop = Math.max(80, Math.min(window.innerHeight - 65, lastTop));
+
     fabButton.style.display = 'flex';
-    fabButton.style.top     = `${lastTop}px`;
+    fabButton.style.top     = `${clampedTop}px`;
 
     setTimeout(() => {
         fabButton.classList.add('visible');
@@ -146,7 +149,9 @@ function restorePanel() {
     if (badge) badge.classList.remove('active');
 
     const rect = fabButton.getBoundingClientRect();
-    panel.style.top          = `${rect.top}px`;
+    // Clamp so the panel never restores above the allowed minimum
+    const clampedTop = Math.max(80, Math.min(window.innerHeight - 100, rect.top));
+    panel.style.top          = `${clampedTop}px`;
     panel.style.right        = '20px';
     panel.style.opacity      = '1';
     panel.style.pointerEvents = 'auto';
@@ -159,6 +164,8 @@ function restorePanel() {
 fabButton.addEventListener('mousedown', startFabDrag);
 document.addEventListener('mousemove',  doFabDrag);
 document.addEventListener('mouseup',    stopFabDrag);
+// Safety net: if mouse leaves the browser window while dragging, stop the drag
+document.addEventListener('mouseleave', stopFabDrag);
 
 function startFabDrag(e) {
     if (!isPanelHidden) return;
@@ -167,6 +174,7 @@ function startFabDrag(e) {
     dragStartTime = Date.now();
     initialFabTop = fabButton.getBoundingClientRect().top;
     fabButton.style.transition = 'none';
+    e.preventDefault();
 }
 
 function doFabDrag(e) {
@@ -180,7 +188,7 @@ function stopFabDrag(e) {
     isDraggingFab = false;
     fabButton.style.transition = 'right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 
-    const isClick = Date.now() - dragStartTime < 300 && Math.abs(startY - e.clientY) < 5;
+    const isClick = Date.now() - dragStartTime < 300 && Math.abs(startY - (e.clientY ?? startY)) < 5;
     if (isClick) restorePanel();
 }
 

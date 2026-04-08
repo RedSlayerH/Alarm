@@ -431,7 +431,19 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
+# Node.js
+node_modules/
+
+# User data - never upload to Git!
+server/users.json
+server/sounds/
+server/soundUserData/
+
+# Environment variables (if you add them later)
+.env
+
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudio,c++
+

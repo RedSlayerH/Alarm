@@ -19,6 +19,11 @@ setTimeout(() => map.invalidateSize(), 200);
 let userHasInteracted = false;
 let interactionTimer  = null;
 
+// זמן טעינת הדף - ערים שהיו קיימות לפני זה לא יגררו זום
+const PAGE_LOAD_TIME = Date.now();
+const citiesOnPageLoad = new Set();
+let pageLoadDone = false;
+
 // אחרי שהמפה נטענת (לשים בקובץ שמאתחל את map, או כאן)
 map.on('dragstart zoomstart', () => {
     userHasInteracted = true;
@@ -123,9 +128,9 @@ function drawCityOnMap(city, threatType = 'רקטות', category = 'rocket') {
 
     activeMapLayers[city] = { layer, type: threatType, category };
 
-    // 5. הקפצת המפה לאזור – רק אם המשתמש לא זז ורק אם האזעקה חדשה (עד 10 שניות)
-    const isNewAlert = (Date.now() - (cityAlertTimes[city] || 0)) < 10_000;
-    if (!userHasInteracted && isNewAlert) {
+    // 5. הקפצת המפה לאזור – רק אם המשתמש לא זז ורק אם העיר לא היתה על המפה בטעינה
+    const isNewSinceLoad = !citiesOnPageLoad.has(city);
+    if (!userHasInteracted && isNewSinceLoad) {
         map.stop();
         map.flyToBounds(layer.getBounds(), { maxZoom: 12, padding: [20, 20], duration: 1.5 });
     }
@@ -278,12 +283,14 @@ function flyToCity(cityName) {
  * allCitiesToDraw: Set של ערים שצריכות להיות על המפה
  */
 function updateMapFromServer(serverActiveCities, allCitiesToDraw) {
-    // 1. עדכון זמנים
+    // 1. עדכון זמנים + סימון ערים שהיו על המפה בטעינת הדף
     Object.keys(serverActiveCities).forEach(city => {
         if (serverActiveCities[city].timestamp) {
             cityAlertTimes[city] = serverActiveCities[city].timestamp;
         }
+        if (!pageLoadDone) citiesOnPageLoad.add(city);
     });
+    if (!pageLoadDone) pageLoadDone = true;
 
     // 2. ציור ערים חדשות / עדכון קיימות
     allCitiesToDraw.forEach(city => {

@@ -19,7 +19,7 @@ const alertListContainer = document.getElementById('alert-list');
 // טעינת מיפוי ערים → אזורים מהשרת
 // ============================================================
 
-fetch('http://localhost:3000/api/cities')
+fetch(`${API_BASE}/api/cities`)
     .then(r => r.json())
     .then(data => { cityToRegionMap = data; })
     .catch(e => console.warn('[main] שגיאה בטעינת ערים:', e));
@@ -32,7 +32,7 @@ function getRegion(city) { return cityToRegionMap[city] || null; }
 
 async function updateUI() {
     try {
-        const res  = await fetch('http://localhost:3000/api/state');
+        const res  = await fetch(`${API_BASE}/api/state`);
         const data = await res.json();
 
         const history            = data.history        || [];
@@ -65,7 +65,6 @@ async function updateUI() {
         });
 
         if (newAlertDetected) {
-            syncAllGlows(); // מ-map.js
             if (isPanelHidden) {
                 const badge = document.getElementById('fab-badge');
                 if (badge) badge.classList.add('active');

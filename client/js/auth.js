@@ -170,7 +170,7 @@ async function submitAuth(action) {
     }
 
     try {
-        const res  = await fetch(`http://localhost:3000/api/auth/${action}`, {
+        const res  = await fetch(`${API_BASE}/api/auth/${action}`, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify({ username, password }),

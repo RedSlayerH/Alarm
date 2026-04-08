@@ -1,59 +1,85 @@
 // ============================================================
-// soundPanel.js  – לוח הצלילים (כפתור עיגול + פאנל)
-// ניהול ערים לפי סוג התרעה + העלאת שיר + ניגון אוטומטי
+// soundPanel.js  – sound panel with built-in melody picker
 // ============================================================
 
 (function () {
 
     // ============================================================
-    // קבועים
+    // Constants
     // ============================================================
 
-    const API = 'http://localhost:3000/api/sound';
-    const MAX_SUGGESTIONS = 5;
-    const MAX_DURATION_SECONDS = 3 * 60; // 3 דקות מקסימום
+    const API = `${API_BASE}/api/sound`;
+    const MAX_SUGGESTIONS      = 5;
+    const MAX_DURATION_SECONDS = 3 * 60;
 
-    // סוגי התרעות
     const ALERT_TYPES = ['alert', 'early', 'clear'];
+
+    // Built-in melodies – fetched from server, but we keep a default list
+    // so the UI can render immediately while the fetch is in flight.
+    let BUILTIN_MELODIES = [
+        { id: 'builtin_1', name: 'מנגינה 1' },
+        { id: 'builtin_2', name: 'מנגינה 2' },
+        { id: 'builtin_3', name: 'מנגינה 3' },
+    ];
 
     // ============================================================
     // State
     // ============================================================
 
-    let currentType    = 'alert';   // הטאב הפעיל
-    let allCities      = {};        // { cityName: zone } – מה-API
-    let userData       = {          // נתוני המשתמש הנוכחי
-        alert: { cities: [], songFile: null },
-        early: { cities: [], songFile: null },
-        clear: { cities: [], songFile: null },
+    let currentType = 'alert';
+    let allCities   = {};
+    let userData    = {
+        alert: { cities: [], songFile: null, builtinMelodyId: null, builtinActive: false },
+        early: { cities: [], songFile: null, builtinMelodyId: null, builtinActive: false },
+        clear: { cities: [], songFile: null, builtinMelodyId: null, builtinActive: false },
     };
-    let isPanelOpen    = false;
+    let isPanelOpen = false;
 
-    // blob URLs זמניים למצב אורח (נעלמים ב-refresh)
+    // Blob URLs for guest uploaded files (lost on refresh)
     const guestBlobUrls = { alert: null, early: null, clear: null };
 
-    // אודיו
+    // Audio
     const audioPlayer  = new Audio();
-    let   lastPlayedType = null;    // מניעת ניגון כפול
+    let lastPlayedType = null;
 
-    // גרירה
+    // Drag state
     let isDraggingFab  = false;
     let fabDragMoved   = false;
     let fabDragStartX  = 0;
     let fabInitialLeft = 0;
 
     // ============================================================
-    // עזר: שם משתמש נוכחי
+    // LocalStorage keys
+    // ============================================================
+
+    const LS_KEY = 'soundPanel_guest';
+
+    // ============================================================
+    // Helpers
     // ============================================================
 
     function getUsername() {
         return localStorage.getItem('currentUser') || null;
     }
 
-    const LS_KEY = 'soundPanel_guest';
+    // ============================================================
+    // Load built-in melodies from server
+    // ============================================================
+
+    async function loadBuiltinMelodies() {
+        try {
+            const res  = await fetch(`${API}/melodies`);
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+                BUILTIN_MELODIES = data;
+            }
+        } catch (e) {
+            console.warn('[soundPanel] Could not load built-in melodies:', e);
+        }
+    }
 
     // ============================================================
-    // טעינת נתוני משתמש
+    // Load user data
     // ============================================================
 
     async function loadUserData() {
@@ -63,21 +89,25 @@
             try {
                 const res  = await fetch(`${API}/userdata?username=${encodeURIComponent(username)}`);
                 const data = await res.json();
-                // מיזוג בטוח – מוודא שכל סוג קיים
                 ALERT_TYPES.forEach(t => {
-                    userData[t] = data[t] || { cities: [], songFile: null };
+                    userData[t] = data[t] || { cities: [], songFile: null, builtinMelodyId: null, builtinActive: false };
+                    // Migrate missing fields
+                    if (userData[t].builtinMelodyId === undefined) userData[t].builtinMelodyId = null;
+                    if (userData[t].builtinActive   === undefined) userData[t].builtinActive   = false;
                 });
             } catch (e) {
-                console.warn('[soundPanel] שגיאה בטעינת נתוני משתמש:', e);
+                console.warn('[soundPanel] Error loading user data:', e);
             }
         } else {
-            // guest – מ-localStorage
+            // Guest – from localStorage
             try {
                 const saved = localStorage.getItem(LS_KEY);
                 if (saved) {
                     const parsed = JSON.parse(saved);
                     ALERT_TYPES.forEach(t => {
-                        userData[t] = parsed[t] || { cities: [], songFile: null };
+                        userData[t] = parsed[t] || { cities: [], songFile: null, builtinMelodyId: null, builtinActive: false };
+                        if (userData[t].builtinMelodyId === undefined) userData[t].builtinMelodyId = null;
+                        if (userData[t].builtinActive   === undefined) userData[t].builtinActive   = false;
                     });
                 }
             } catch {}
@@ -87,7 +117,7 @@
     }
 
     // ============================================================
-    // שמירת ערים
+    // Save cities
     // ============================================================
 
     async function saveCities(type) {
@@ -102,43 +132,73 @@
                     body:    JSON.stringify({ username, alertType: type, cities }),
                 });
             } catch (e) {
-                console.warn('[soundPanel] שגיאה בשמירת ערים:', e);
+                console.warn('[soundPanel] Error saving cities:', e);
             }
         } else {
-            // שמירה ב-localStorage (רק ערים, לא קבצים)
-            try {
-                const saved  = localStorage.getItem(LS_KEY);
-                const parsed = saved ? JSON.parse(saved) : {};
-                ALERT_TYPES.forEach(t => {
-                    if (!parsed[t]) parsed[t] = { cities: [], songFile: null };
-                });
-                parsed[type].cities = cities;
-                localStorage.setItem(LS_KEY, JSON.stringify(parsed));
-            } catch {}
+            _saveGuestData();
         }
     }
 
     // ============================================================
-    // טעינת רשימת ערים מהשרת
+    // Save built-in melody choice
+    // ============================================================
+
+    async function saveBuiltinChoice(type) {
+        const username = getUsername();
+        const { builtinMelodyId, builtinActive } = userData[type];
+
+        if (username) {
+            try {
+                await fetch(`${API}/builtin`, {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ username, alertType: type, builtinMelodyId, builtinActive }),
+                });
+            } catch (e) {
+                console.warn('[soundPanel] Error saving builtin choice:', e);
+            }
+        } else {
+            _saveGuestData();
+        }
+    }
+
+    function _saveGuestData() {
+        try {
+            const toSave = {};
+            ALERT_TYPES.forEach(t => {
+                toSave[t] = {
+                    cities:          userData[t].cities,
+                    builtinMelodyId: userData[t].builtinMelodyId,
+                    builtinActive:   userData[t].builtinActive,
+                    // Don't save songFile name for guests (blob URLs are session-only)
+                    songFile: null,
+                };
+            });
+            localStorage.setItem(LS_KEY, JSON.stringify(toSave));
+        } catch {}
+    }
+
+    // ============================================================
+    // Load city list
     // ============================================================
 
     async function loadCities() {
         try {
-            const res  = await fetch('http://localhost:3000/api/cities');
+            const res  = await fetch(`${API_BASE}/api/cities`);
             allCities  = await res.json();
         } catch (e) {
-            console.warn('[soundPanel] שגיאה בטעינת ערים:', e);
+            console.warn('[soundPanel] Error loading cities:', e);
         }
     }
 
     // ============================================================
-    // בניית ה-HTML של הפאנל ו-FAB
+    // Build UI
     // ============================================================
 
     function buildUI() {
-        // --- כפתור עיגול ---
+        // FAB button
         const fab = document.createElement('div');
-        fab.id = 'sound-fab';
+        fab.id    = 'sound-fab';
         fab.title = 'הגדרות צלילים';
         fab.innerHTML = `
             <svg viewBox="0 0 24 24">
@@ -146,23 +206,23 @@
             </svg>`;
         document.body.appendChild(fab);
 
-        // --- לשונית שחזור ---
+        // Restore tab
         const tab = document.createElement('div');
         tab.id = 'sound-restore-tab';
         document.body.appendChild(tab);
 
-        // --- הפאנל ---
+        // Panel wrapper
         const panel = document.createElement('div');
         panel.id = 'sound-panel';
         panel.classList.add('sp-hidden');
         panel.innerHTML = buildPanelHTML();
         document.body.appendChild(panel);
 
-        // input קובץ (מחוץ לפאנל כדי שלא יהיה תוכן ב-DOM שלו)
-        const fileInput = document.createElement('input');
-        fileInput.id     = 'sp-file-input';
-        fileInput.type   = 'file';
-        fileInput.accept = '.mp3,.wav,.ogg,.m4a,.aac,.flac';
+        // Hidden file input
+        const fileInput   = document.createElement('input');
+        fileInput.id      = 'sp-file-input';
+        fileInput.type    = 'file';
+        fileInput.accept  = '.mp3,.wav,.ogg,.m4a,.aac,.flac';
         document.body.appendChild(fileInput);
 
         bindEvents();
@@ -170,16 +230,17 @@
 
     function buildPanelHTML() {
         return `
-            <!-- שורת אייקונים -->
-            <div class="sp-icons-row">
+            <!-- Sticky icons row -->
+            <div class="sp-icons-row" id="sp-icons-row">
                 ${buildIconBtn('alert', alertIcon(), 'אזעקה')}
                 ${buildIconBtn('early', earlyIcon(), 'התרעה מקדימה')}
                 ${buildIconBtn('clear', clearIcon(), 'סיום אירוע')}
             </div>
 
-            <!-- גוף -->
-            <div class="sp-body">
-                <!-- חיפוש -->
+            <!-- Scrollable body -->
+            <div class="sp-body" id="sp-body">
+
+                <!-- City search -->
                 <div class="sp-search-wrap">
                     <svg class="sp-search-icon" viewBox="0 0 24 24">
                         <path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
@@ -189,15 +250,15 @@
                            autocomplete="off" autocorrect="off" spellcheck="false" dir="rtl">
                 </div>
 
-                <!-- הצעות -->
+                <!-- Suggestions -->
                 <div id="sp-suggestions" class="sp-suggestions"></div>
 
-                <!-- תגיות ערים -->
+                <!-- City tags -->
                 <div id="sp-tags" class="sp-tags-wrap"></div>
 
-                <!-- אזור שיר -->
+                <!-- Upload song section -->
                 <div class="sp-song-section">
-                    <div class="sp-song-label">🎵 צליל לסוג זה</div>
+                    <div class="sp-song-label">🎵 צליל מותאם אישית</div>
 
                     <div id="sp-current-song" class="sp-current-song">
                         <svg class="sp-current-song-icon" viewBox="0 0 24 24">
@@ -216,6 +277,15 @@
 
                     <div id="sp-upload-status" class="sp-upload-status"></div>
                 </div>
+
+                <!-- Built-in melodies section -->
+                <div class="sp-builtin-section">
+                    <div class="sp-song-label">🎼 בחר מנגינה מובנית</div>
+                    <div id="sp-builtin-list" class="sp-builtin-list">
+                        <!-- rendered by renderBuiltinMelodies() -->
+                    </div>
+                </div>
+
             </div>`;
     }
 
@@ -229,7 +299,7 @@
     }
 
     // ============================================================
-    // אייקוני SVG
+    // SVG icons
     // ============================================================
 
     function alertIcon() {
@@ -251,17 +321,17 @@
     }
 
     // ============================================================
-    // קישור אירועים
+    // Bind events
     // ============================================================
 
     function bindEvents() {
-        const fab        = document.getElementById('sound-fab');
-        const restoreTab = document.getElementById('sound-restore-tab');
-        const panel      = document.getElementById('sound-panel');
-        const searchInput= document.getElementById('sp-search');
-        const fileInput  = document.getElementById('sp-file-input');
+        const fab         = document.getElementById('sound-fab');
+        const restoreTab  = document.getElementById('sound-restore-tab');
+        const panel       = document.getElementById('sound-panel');
+        const searchInput = document.getElementById('sp-search');
+        const fileInput   = document.getElementById('sp-file-input');
 
-        // לחיצה על FAB – פתיחת פאנל (רק כפתור שמאלי)
+        // FAB click
         fab.addEventListener('click', (e) => {
             if (e.button !== 0) return;
             if (suppressNextClick) { suppressNextClick = false; return; }
@@ -269,31 +339,33 @@
             togglePanel();
         });
 
-        // גרירת FAB שמאלה
+        // FAB drag
         fab.addEventListener('mousedown', onFabMouseDown);
         document.addEventListener('mousemove', onFabMouseMove);
         document.addEventListener('mouseup',   onFabMouseUp);
 
-        // לשונית שחזור
+        // Restore tab
         restoreTab.addEventListener('click', restoreFab);
 
-        // אייקוני סוג
+        // Alert type icon buttons
         panel.querySelectorAll('.sp-icon-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                const type = btn.getAttribute('data-type');
-                switchType(type);
+                switchType(btn.getAttribute('data-type'));
             });
         });
 
-        // חיפוש
+        // Search input
         searchInput.addEventListener('input', onSearchInput);
         searchInput.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') hideSuggestions();
         });
 
-        // סגירה בלחיצה מחוץ לפאנל
-        // fileDialogOpenedAt מונע סגירה כשדיאלוג הקובץ נסגר
-        let fileDialogOpenedAt = 0;
+        // Close panel on outside click
+        let suppressPanelClose = false;
+        function tempSuppressClose(ms = 3000) {
+            suppressPanelClose = true;
+            setTimeout(() => { suppressPanelClose = false; }, ms);
+        }
 
         document.addEventListener('click', (e) => {
             const soundPanel = document.getElementById('sound-panel');
@@ -308,28 +380,33 @@
                 if (typeof markMapUserInteraction === 'function') markMapUserInteraction();
                 return;
             }
-
-            // התעלם מקליקים שמגיעים עד 600ms אחרי פתיחת דיאלוג הקובץ
-            if (Date.now() - fileDialogOpenedAt < 600) return;
+            if (suppressPanelClose) return;
 
             hideSuggestions();
             if (isPanelOpen) closePanel();
         });
 
-        // העלאת קובץ
-        document.getElementById('sp-upload-trigger').addEventListener('click', () => {
-            fileDialogOpenedAt = Date.now();
+        // Upload button
+        document.getElementById('sp-upload-trigger').addEventListener('click', (e) => {
+            e.preventDefault();
+            tempSuppressClose(3000);
             fileInput.click();
         });
 
-        fileInput.addEventListener('change', onFileSelected);
+        fileInput.addEventListener('change', (e) => {
+            tempSuppressClose(3000);
+            onFileSelected(e);
+        });
 
-        // מחיקת שיר
-        document.getElementById('sp-delete-song').addEventListener('click', deleteSong);
+        // Delete uploaded song
+        document.getElementById('sp-delete-song').addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteSong();
+        });
     }
 
     // ============================================================
-    // פתיחה/סגירה של הפאנל
+    // Panel open / close
     // ============================================================
 
     function togglePanel() {
@@ -350,14 +427,12 @@
     }
 
     // ============================================================
-    // גרירת FAB
+    // FAB drag
     // ============================================================
 
-    // מונע פתיחת פאנל אחרי hide שנגרם מגרירה
     let suppressNextClick = false;
 
     function onFabMouseDown(e) {
-        // רק כפתור שמאלי
         if (e.button !== 0) return;
         isDraggingFab  = true;
         fabDragMoved   = false;
@@ -370,10 +445,8 @@
 
     function onFabMouseMove(e) {
         if (!isDraggingFab) return;
-        const dx      = e.clientX - fabDragStartX;
+        const dx = e.clientX - fabDragStartX;
         if (Math.abs(dx) > 5) fabDragMoved = true;
-
-        // רק גרירה שמאלה מותרת
         const newLeft = Math.max(-60, Math.min(fabInitialLeft + dx, 20));
         document.getElementById('sound-fab').style.left = `${newLeft}px`;
     }
@@ -381,55 +454,44 @@
     function onFabMouseUp(e) {
         if (!isDraggingFab) return;
         isDraggingFab = false;
-
-        const fab  = document.getElementById('sound-fab');
+        const fab = document.getElementById('sound-fab');
         fab.style.transition = '';
-
         const currentLeft = fab.getBoundingClientRect().left;
 
         if (fabDragMoved && currentLeft < -20) {
-            // הוסתר מספיק שמאלה → dismiss
             suppressNextClick = true;
             hideFab();
         } else if (!fabDragMoved) {
-            // לחיצה (לא גרירה) – togglePanel יופעל דרך ה-click listener
+            // click handled via click event
         } else {
-            // חזרה למקום
             fab.style.left = '20px';
         }
     }
 
     function hideFab() {
-        const fab = document.getElementById('sound-fab');
-        fab.style.display = 'none';
+        document.getElementById('sound-fab').style.display = 'none';
         closePanel();
-
-        const tab = document.getElementById('sound-restore-tab');
-        tab.classList.add('visible');
+        document.getElementById('sound-restore-tab').classList.add('visible');
     }
 
     function restoreFab() {
         const fab = document.getElementById('sound-fab');
-
-        // התחל מחוץ למסך ואז גלוש למקום הקבוע
         fab.style.transition = 'none';
-        fab.style.left = '-70px';
-        fab.style.display = 'flex';
+        fab.style.left       = '-70px';
+        fab.style.display    = 'flex';
 
-        // requestAnimationFrame כפול מבטיח שה-browser ירנדר את המיקום ההתחלתי לפני האנימציה
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 fab.style.transition = 'left 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-                fab.style.left = '20px';
+                fab.style.left       = '20px';
             });
         });
 
-        const tab = document.getElementById('sound-restore-tab');
-        tab.classList.remove('visible');
+        document.getElementById('sound-restore-tab').classList.remove('visible');
     }
 
     // ============================================================
-    // החלפת טאב
+    // Switch alert type tab
     // ============================================================
 
     function switchType(type) {
@@ -441,23 +503,22 @@
         document.getElementById('sp-search').value = '';
         renderTags();
         renderSongSection();
+        renderBuiltinMelodies();
     }
 
     // ============================================================
-    // חיפוש ערים
+    // City search
     // ============================================================
 
     function onSearchInput(e) {
         const term = e.target.value.trim();
         if (!term) { hideSuggestions(); return; }
 
-        // מחפשים ערים שמתחילות באותם אותיות
         const matches = Object.keys(allCities)
             .filter(city => city.startsWith(term))
             .slice(0, MAX_SUGGESTIONS);
 
         if (matches.length === 0) { hideSuggestions(); return; }
-
         showSuggestions(matches);
     }
 
@@ -471,14 +532,11 @@
                     ${zone ? `<span class="sp-suggestion-zone">${zone}</span>` : ''}
                 </div>`;
         }).join('');
-
         container.classList.add('visible');
 
-        // לחיצה על הצעה
         container.querySelectorAll('.sp-suggestion-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                const city = item.getAttribute('data-city');
-                addCity(city);
+            item.addEventListener('click', () => {
+                addCity(item.getAttribute('data-city'));
                 document.getElementById('sp-search').value = '';
                 hideSuggestions();
             });
@@ -494,7 +552,7 @@
     }
 
     // ============================================================
-    // ניהול ערים
+    // City management
     // ============================================================
 
     function addCity(city) {
@@ -502,7 +560,6 @@
             userData[currentType].cities.push(city);
             saveCities(currentType);
             renderTags();
-            // מונע את המפה מלאפס את הזום בגלל הלחיצה
             if (typeof markMapUserInteraction === 'function') markMapUserInteraction();
         }
     }
@@ -511,28 +568,22 @@
         userData[currentType].cities = userData[currentType].cities.filter(c => c !== city);
         saveCities(currentType);
         renderTags();
-        // מונע את המפה מלאפס את הזום בגלל הלחיצה
         if (typeof markMapUserInteraction === 'function') markMapUserInteraction();
     }
 
     // ============================================================
-    // רינדור תגיות
+    // Render: tags
     // ============================================================
 
     function renderTags() {
         const container = document.getElementById('sp-tags');
         if (!container) return;
-
         const cities = userData[currentType].cities;
 
-        // הסרת תגיות שכבר לא קיימות
         Array.from(container.querySelectorAll('.sp-tag')).forEach(tag => {
-            if (!cities.includes(tag.getAttribute('data-city'))) {
-                container.removeChild(tag);
-            }
+            if (!cities.includes(tag.getAttribute('data-city'))) container.removeChild(tag);
         });
 
-        // הוספת תגיות חדשות שעדיין לא מוצגות
         const existing = new Set(
             Array.from(container.querySelectorAll('.sp-tag')).map(t => t.getAttribute('data-city'))
         );
@@ -552,7 +603,7 @@
     }
 
     // ============================================================
-    // רינדור אזור שיר
+    // Render: uploaded song section
     // ============================================================
 
     function renderSongSection() {
@@ -562,40 +613,151 @@
         const statusDiv  = document.getElementById('sp-upload-status');
 
         if (songData.songFile) {
-            // מציג את שם הקובץ בצורה נקייה (ללא prefix)
-            const cleanName = songData.songFile.replace(/^[^_]+_[^_]+_\d+/, '') // הסרת username_type_timestamp
-                                               .replace(/^_/, '')
-                                               || songData.songFile;
+            const cleanName = songData.songFile
+                .replace(/^[^_]+_[^_]+_\d+/, '')
+                .replace(/^_/, '')
+                || songData.songFile;
             nameSpan.textContent = cleanName;
             currentDiv.classList.add('visible');
         } else {
             currentDiv.classList.remove('visible');
         }
 
+        // Dim uploaded song row when builtin is active
+        const uploadArea = document.querySelector('.sp-song-section');
+        if (uploadArea) {
+            uploadArea.classList.toggle('sp-dimmed', !!songData.builtinActive);
+        }
+
         if (statusDiv) statusDiv.textContent = '';
     }
+
+    // ============================================================
+    // Render: built-in melodies
+    // ============================================================
+
+    function renderBuiltinMelodies() {
+        const container = document.getElementById('sp-builtin-list');
+        if (!container) return;
+
+        const songData = userData[currentType];
+
+        container.innerHTML = BUILTIN_MELODIES.map(m => {
+            const isSelected = songData.builtinMelodyId === m.id;
+            const isActive   = isSelected && songData.builtinActive;
+
+            return `
+                <div class="sp-melody-row ${isActive ? 'sp-melody-active' : ''}" data-melody-id="${m.id}">
+                    <!-- Checkbox -->
+                    <button type="button"
+                            class="sp-melody-checkbox ${isActive ? 'checked' : ''}"
+                            data-melody-id="${m.id}"
+                            title="${isActive ? 'בטל בחירה' : 'בחר מנגינה זו'}">
+                        ${isActive ? checkIcon() : ''}
+                    </button>
+
+                    <!-- Melody name -->
+                    <span class="sp-melody-name">${m.name}</span>
+
+                    <!-- Play preview button -->
+                    <button type="button" class="sp-melody-preview" data-melody-id="${m.id}" title="השמע תצוגה מקדימה">
+                        ▶
+                    </button>
+                </div>`;
+        }).join('');
+
+        // Bind checkbox clicks
+        container.querySelectorAll('.sp-melody-checkbox').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                onMelodyCheckboxClick(btn.getAttribute('data-melody-id'));
+            });
+        });
+
+        // Bind preview clicks
+        container.querySelectorAll('.sp-melody-preview').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                previewMelody(btn.getAttribute('data-melody-id'));
+            });
+        });
+
+        // Update uploaded-song dimming
+        renderSongSection();
+    }
+
+    function checkIcon() {
+        return `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+        </svg>`;
+    }
+
+    // ============================================================
+    // Melody checkbox logic
+    // ============================================================
+
+    function onMelodyCheckboxClick(melodyId) {
+        const songData = userData[currentType];
+        const isSame   = songData.builtinMelodyId === melodyId;
+
+        if (isSame && songData.builtinActive) {
+            // Uncheck: deactivate built-in → uploaded song takes over (if any)
+            songData.builtinActive = false;
+        } else {
+            // Select & activate this melody
+            songData.builtinMelodyId = melodyId;
+            songData.builtinActive   = true;
+        }
+
+        saveBuiltinChoice(currentType);
+        renderBuiltinMelodies();
+        renderIconDots();
+    }
+
+    // ============================================================
+    // Preview a melody (plays it once)
+    // ============================================================
+
+    function previewMelody(melodyId) {
+        const melody = BUILTIN_MELODIES.find(m => m.id === melodyId);
+        if (!melody || !melody.file) return;
+        const src = `${API}/builtin/${encodeURIComponent(melody.file)}`;
+        audioPlayer.src = src;
+        audioPlayer.currentTime = 0;
+        audioPlayer.play().catch(e => console.warn('[soundPanel] Preview error:', e.message));
+    }
+
+    // ============================================================
+    // Render: icon dots (green dot = has sound configured)
+    // ============================================================
 
     function renderIconDots() {
         ALERT_TYPES.forEach(type => {
             const btn = document.querySelector(`.sp-icon-btn[data-type="${type}"]`);
             if (btn) {
-                btn.classList.toggle('has-song', !!userData[type].songFile);
+                const d = userData[type];
+                const hasSomething = (d.builtinActive && d.builtinMelodyId) || (!d.builtinActive && d.songFile);
+                btn.classList.toggle('has-song', hasSomething);
             }
         });
     }
 
+    // ============================================================
+    // Render all
+    // ============================================================
+
     function renderAll() {
-        // הגדרת הטאב הפעיל
         document.querySelectorAll('.sp-icon-btn').forEach(btn => {
             btn.classList.toggle('active', btn.getAttribute('data-type') === currentType);
         });
         renderTags();
         renderSongSection();
+        renderBuiltinMelodies();
         renderIconDots();
     }
 
     // ============================================================
-    // העלאת קובץ
+    // File upload
     // ============================================================
 
     async function onFileSelected(e) {
@@ -605,10 +767,9 @@
         const statusDiv = document.getElementById('sp-upload-status');
         statusDiv.classList.remove('error');
 
-        // בדיקת אורך השיר (אם ניתן)
         const ok = await checkDuration(file);
         if (!ok) {
-            statusDiv.textContent = `השיר ארוך מדי (מקסימום 3 דקות)`;
+            statusDiv.textContent = 'השיר ארוך מדי (מקסימום 3 דקות)';
             statusDiv.classList.add('error');
             e.target.value = '';
             return;
@@ -617,7 +778,6 @@
         const username = getUsername();
 
         if (!username) {
-            // אורח – blob URL בזיכרון בלבד, נעלם ב-refresh
             if (guestBlobUrls[currentType]) URL.revokeObjectURL(guestBlobUrls[currentType]);
             guestBlobUrls[currentType] = URL.createObjectURL(file);
             userData[currentType].songFile = file.name;
@@ -650,7 +810,7 @@
                 statusDiv.textContent = data.error || 'שגיאה בהעלאה';
                 statusDiv.classList.add('error');
             }
-        } catch (err) {
+        } catch {
             statusDiv.textContent = 'שגיאת תקשורת';
             statusDiv.classList.add('error');
         }
@@ -658,7 +818,6 @@
         e.target.value = '';
     }
 
-    // בדיקת אורך השיר
     function checkDuration(file) {
         return new Promise(resolve => {
             const audio = document.createElement('audio');
@@ -670,20 +829,19 @@
             });
             audio.addEventListener('error', () => {
                 URL.revokeObjectURL(url);
-                resolve(true); // אם לא ניתן לבדוק, נאפשר
+                resolve(true);
             });
         });
     }
 
     // ============================================================
-    // מחיקת שיר
+    // Delete uploaded song
     // ============================================================
 
     async function deleteSong() {
         const username = getUsername();
 
         if (!username) {
-            // אורח – מחיקת blob URL מהזיכרון
             if (guestBlobUrls[currentType]) {
                 URL.revokeObjectURL(guestBlobUrls[currentType]);
                 guestBlobUrls[currentType] = null;
@@ -695,9 +853,10 @@
         }
 
         try {
-            await fetch(`${API}/song?username=${encodeURIComponent(username)}&alertType=${currentType}`, {
-                method: 'DELETE',
-            });
+            await fetch(
+                `${API}/song?username=${encodeURIComponent(username)}&alertType=${currentType}`,
+                { method: 'DELETE' }
+            );
         } catch {}
 
         userData[currentType].songFile = null;
@@ -706,65 +865,63 @@
     }
 
     // ============================================================
-    // ניגון אוטומטי – נקרא מ-main.js בעת אזעקה
+    // Auto-play trigger — called from main.js
     // ============================================================
 
-    /**
-     * triggerSoundAlert(type, cities)
-     * type:   'alert' | 'early' | 'clear'
-     * cities: מערך שמות ערים מהאזעקה
-     */
     window.triggerSoundAlert = function (type, cities) {
         if (!ALERT_TYPES.includes(type)) return;
 
-        const songData = userData[type];
-        if (!songData.songFile) return;
-
-        // בדיקה אם אחד מהיישובים שמורים
+        const songData   = userData[type];
         const savedCities = songData.cities;
+
+        // Check if alert matches saved cities (empty list = always play)
         if (savedCities.length > 0) {
             const match = cities.some(city => savedCities.includes(city));
             if (!match) return;
         }
-        // אם אין ערים שמורות – מנגן תמיד לסוג זה
 
-        playSound(type, songData.songFile);
+        // Decide what to play
+        if (songData.builtinActive && songData.builtinMelodyId) {
+            // Play built-in melody
+            const melody = BUILTIN_MELODIES.find(m => m.id === songData.builtinMelodyId);
+            if (melody && melody.file) {
+                playSoundSrc(type, `${API}/builtin/${encodeURIComponent(melody.file)}`);
+            }
+        } else if (!songData.builtinActive && songData.songFile) {
+            // Play uploaded song
+            const src = guestBlobUrls[type]
+                ? guestBlobUrls[type]
+                : `${API}/file/${encodeURIComponent(songData.songFile)}`;
+            playSoundSrc(type, src);
+        }
     };
 
-    function playSound(type, filename) {
-        // מניעת כפילות
+    function playSoundSrc(type, src) {
         if (lastPlayedType === type && !audioPlayer.paused) return;
-
-        lastPlayedType = type;
-        // אורח – נגן מה-blob URL שבזיכרון; משתמש מחובר – מהשרת
-        const src = guestBlobUrls[type]
-            ? guestBlobUrls[type]
-            : `${API}/file/${encodeURIComponent(filename)}`;
-        audioPlayer.src = src;
+        lastPlayedType       = type;
+        audioPlayer.src      = src;
         audioPlayer.currentTime = 0;
-        audioPlayer.play().catch(e => {
-            console.warn('[soundPanel] לא ניתן לנגן:', e.message);
-        });
+        audioPlayer.play().catch(e => console.warn('[soundPanel] Cannot play:', e.message));
     }
 
     // ============================================================
-    // אתחול
+    // Init
     // ============================================================
 
     async function init() {
         await loadCities();
+        await loadBuiltinMelodies();
         buildUI();
         await loadUserData();
     }
 
-    // מחכה ל-DOMContentLoaded
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
         init();
     }
 
-    // רענון נתונים כשמשתמש מתחבר/מתנתק
+    // Refresh when user logs in/out
     window.addEventListener('storage', (e) => {
         if (e.key === 'currentUser') loadUserData();
     });

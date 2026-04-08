@@ -1,14 +1,27 @@
 {
   "alert": {
-    "cities": [],
-    "songFile": "רון_alert_1775642628487.wav"
+    "cities": [
+      "נטועה",
+      "שתולה",
+      "מרגליות",
+      "קריית שמונה"
+    ],
+    "songFile": "רון_alert_1775655406790.wav",
+    "builtinMelodyId": "builtin_1",
+    "builtinActive": true
   },
   "early": {
-    "cities": [],
-    "songFile": null
+    "cities": [
+      "באר שבע - צפון"
+    ],
+    "songFile": "רון_early_1775655433821.wav",
+    "builtinMelodyId": "builtin_1",
+    "builtinActive": false
   },
   "clear": {
     "cities": [],
-    "songFile": null
+    "songFile": null,
+    "builtinMelodyId": "builtin_2",
+    "builtinActive": false
   }
 }

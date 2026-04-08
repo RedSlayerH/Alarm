@@ -1,10 +1,9 @@
 /* ============================================================
-   soundPanel.css  – עיצוב לוח הצלילים
-   כפתור עיגול + פאנל + חיפוש ערים + העלאת שיר
+   soundPanel.css  – sound panel styles
    ============================================================ */
 
 /* ============================================================
-   כפתור העיגול הצידי (שמאל)
+   FAB button (left side)
    ============================================================ */
 
 #sound-fab {
@@ -40,20 +39,14 @@
     pointer-events: none;
 }
 
-/* מצב מוסתר – הסתחב שמאלה, נשאר רק קצה */
-#sound-fab.hidden-left {
-    left: -60px;
-}
-
 /* ============================================================
-   לשונית השחזור (מלבן שקוף שבולט מהשמאל)
+   Restore tab
    ============================================================ */
 
 #sound-restore-tab {
     position: fixed;
     left: 0;
     top: 20px;
-    transform: none;
     width: 22px;
     height: 60px;
     background: rgba(43, 45, 49, 0.55);
@@ -78,7 +71,6 @@
     display: flex;
 }
 
-/* חץ קטן בפנים */
 #sound-restore-tab::after {
     content: '›';
     color: rgba(200,200,200,0.8);
@@ -87,15 +79,16 @@
 }
 
 /* ============================================================
-   הפאנל הראשי
+   Main panel
    ============================================================ */
 
 #sound-panel {
     position: fixed;
     left: 85px;
     top: 20px;
-    transform: none;
     width: 300px;
+    /* Max height so it never goes off screen; body scrolls inside */
+    max-height: calc(100vh - 40px);
     background: linear-gradient(160deg, #dce8f5 0%, #c8dff0 40%, #b8d4ec 100%);
     border-radius: 16px;
     z-index: 1001;
@@ -103,7 +96,7 @@
     border: 1px solid rgba(255,255,255,0.5);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: hidden;           /* clip rounded corners */
     transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
@@ -114,14 +107,18 @@
 }
 
 /* ============================================================
-   שורת האייקונים
+   Icons row — STICKY at top, never scrolls
    ============================================================ */
 
 .sp-icons-row {
+    flex-shrink: 0;             /* never shrink */
     display: flex;
     align-items: stretch;
     background: rgba(255,255,255,0.35);
     border-bottom: 1px solid rgba(255,255,255,0.5);
+    /* Ensure it stays on top visually when body scrolls */
+    position: relative;
+    z-index: 2;
 }
 
 .sp-icon-btn {
@@ -164,7 +161,6 @@
     letter-spacing: 0.2px;
 }
 
-/* מפריד אנכי בין אייקונים */
 .sp-icon-btn + .sp-icon-btn::before {
     content: '';
     position: absolute;
@@ -175,7 +171,7 @@
     background: rgba(100,130,180,0.35);
 }
 
-/* אינדיקטור שיר פעיל (נקודה ירוקה) */
+/* Green dot = has sound configured */
 .sp-icon-btn .sp-song-dot {
     position: absolute;
     top: 6px;
@@ -193,23 +189,40 @@
 }
 
 /* ============================================================
-   גוף הפאנל
+   Scrollable body
    ============================================================ */
 
 .sp-body {
+    flex: 1;
+    overflow-y: auto;
     padding: 12px 14px;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    flex: 1;
+
+    /* Custom scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(80,120,180,0.35) transparent;
+}
+
+.sp-body::-webkit-scrollbar {
+    width: 5px;
+}
+.sp-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+.sp-body::-webkit-scrollbar-thumb {
+    background: rgba(80,120,180,0.35);
+    border-radius: 4px;
 }
 
 /* ============================================================
-   תיבת חיפוש
+   Search box
    ============================================================ */
 
 .sp-search-wrap {
     position: relative;
+    flex-shrink: 0;
 }
 
 .sp-search-input {
@@ -237,7 +250,6 @@
     color: #8899b0;
 }
 
-/* אייקון חיפוש */
 .sp-search-icon {
     position: absolute;
     left: 11px;
@@ -250,7 +262,7 @@
 }
 
 /* ============================================================
-   רשימת הצעות
+   Suggestions
    ============================================================ */
 
 .sp-suggestions {
@@ -298,7 +310,7 @@
 }
 
 /* ============================================================
-   תגיות ערים שנבחרו
+   City tags
    ============================================================ */
 
 .sp-tags-wrap {
@@ -358,7 +370,7 @@
 }
 
 /* ============================================================
-   אזור שיר
+   Uploaded song section
    ============================================================ */
 
 .sp-song-section {
@@ -367,6 +379,13 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    transition: opacity 0.25s ease;
+}
+
+/* When built-in melody is active, dim the upload area */
+.sp-song-section.sp-dimmed {
+    opacity: 0.38;
+    pointer-events: none;
 }
 
 .sp-song-label {
@@ -377,16 +396,14 @@
     direction: rtl;
 }
 
-/* שם השיר הנוכחי */
 .sp-current-song {
-    display: flex;
+    display: none;
     align-items: center;
     gap: 8px;
     background: rgba(255,255,255,0.4);
     border-radius: 10px;
     padding: 7px 10px;
     direction: rtl;
-    display: none;
 }
 
 .sp-current-song.visible {
@@ -423,7 +440,6 @@
 
 .sp-delete-song-btn:hover { color: #e05050; }
 
-/* כפתור העלאה */
 .sp-upload-btn {
     display: flex;
     align-items: center;
@@ -453,12 +469,10 @@
     fill: #2a4a75;
 }
 
-/* input קובץ מוסתר */
 #sp-file-input {
     display: none;
 }
 
-/* הודעת סטטוס */
 .sp-upload-status {
     font-size: 11.5px;
     text-align: center;
@@ -469,4 +483,123 @@
 
 .sp-upload-status.error {
     color: #aa2020;
+}
+
+/* ============================================================
+   Built-in melodies section
+   ============================================================ */
+
+.sp-builtin-section {
+    border-top: 1px solid rgba(100,140,200,0.25);
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    /* Add some bottom padding so the last item isn't flush against the panel edge */
+    padding-bottom: 6px;
+}
+
+.sp-builtin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* One melody row */
+.sp-melody-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.28);
+    border: 1.5px solid rgba(100,140,200,0.2);
+    direction: rtl;
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Active / selected row */
+.sp-melody-row.sp-melody-active {
+    background: rgba(40, 120, 220, 0.18);
+    border-color: rgba(60,130,230,0.55);
+    box-shadow: 0 2px 8px rgba(40,100,200,0.18);
+}
+
+/* Melody name */
+.sp-melody-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a3050;
+    direction: rtl;
+}
+
+.sp-melody-row.sp-melody-active .sp-melody-name {
+    color: #1050b0;
+}
+
+/* Checkbox button */
+.sp-melody-checkbox {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    border: 2px solid rgba(80,120,190,0.45);
+    background: rgba(255,255,255,0.6);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.18s, border-color 0.18s, box-shadow 0.18s;
+    color: white;
+    padding: 0;
+}
+
+.sp-melody-checkbox:hover {
+    border-color: rgba(60,120,220,0.7);
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 0 0 3px rgba(60,120,220,0.12);
+}
+
+.sp-melody-checkbox.checked {
+    background: #2d6fd4;
+    border-color: #2050b0;
+    box-shadow: 0 2px 6px rgba(40,100,200,0.35);
+}
+
+.sp-melody-checkbox.checked:hover {
+    background: #1d5fc0;
+}
+
+.sp-melody-checkbox svg {
+    pointer-events: none;
+}
+
+/* Preview button */
+.sp-melody-preview {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(40,80,160,0.15);
+    color: #2a4a90;
+    font-size: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+    padding: 0;
+    padding-right: 1px; /* optical centering of ▶ */
+}
+
+.sp-melody-preview:hover {
+    background: rgba(40,80,160,0.3);
+    color: #1a3a80;
+    transform: scale(1.1);
+}
+
+.sp-melody-preview:active {
+    transform: scale(0.95);
 }
