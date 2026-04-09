@@ -1,14 +1,14 @@
 // ============================================================
-// soundRoutes.js  – נתיבי שרת לפיצ'ר לוח הצלילים
-// העלאת שירים, שמירת יישובים לפי סוג התרעה, פירוט per-user
+// soundRoutes.js – sound panel routes using MongoDB
 // ============================================================
 
 const express  = require('express');
 const fs       = require('fs');
 const path     = require('path');
 const router   = express.Router();
+const { SoundSettings } = require('./db');
 
-// multer for file uploads (npm install multer)
+// multer for file uploads
 let multer;
 try {
     multer = require('multer');
@@ -17,16 +17,14 @@ try {
 }
 
 // ============================================================
-// Folder setup
+// Folder setup (only for uploaded audio files)
 // ============================================================
 
-const SOUNDS_DIR    = path.join(__dirname, 'sounds');
-const USERDATA_DIR  = path.join(__dirname, 'soundUserData');
-const BUILTIN_DIR   = path.join(__dirname, 'sounds', 'builtin'); // built-in melodies
+const SOUNDS_DIR  = path.join(__dirname, 'sounds');
+const BUILTIN_DIR = path.join(__dirname, 'sounds', 'builtin');
 
-if (!fs.existsSync(SOUNDS_DIR))   fs.mkdirSync(SOUNDS_DIR,   { recursive: true });
-if (!fs.existsSync(USERDATA_DIR)) fs.mkdirSync(USERDATA_DIR, { recursive: true });
-if (!fs.existsSync(BUILTIN_DIR))  fs.mkdirSync(BUILTIN_DIR,  { recursive: true });
+if (!fs.existsSync(SOUNDS_DIR))  fs.mkdirSync(SOUNDS_DIR,  { recursive: true });
+if (!fs.existsSync(BUILTIN_DIR)) fs.mkdirSync(BUILTIN_DIR, { recursive: true });
 
 // ============================================================
 // multer setup
@@ -48,19 +46,15 @@ if (multer) {
     const fileFilter = (req, file, cb) => {
         const allowed = ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'];
         const ext     = path.extname(file.originalname).toLowerCase();
-        if (allowed.includes(ext)) {
-            cb(null, true);
-        } else {
-            cb(new Error('Unsupported file format. Use MP3, WAV, OGG, M4A, AAC or FLAC'), false);
-        }
+        if (allowed.includes(ext)) cb(null, true);
+        else cb(new Error('Unsupported format. Use MP3, WAV, OGG, M4A, AAC or FLAC'), false);
     };
 
     upload = multer({ storage, fileFilter, limits: { fileSize: 20 * 1024 * 1024 } });
 }
 
 // ============================================================
-// Built-in melodies manifest
-// Each melody: { id, name, file }
+// Built-in melodies
 // ============================================================
 
 const BUILTIN_MELODIES = [
@@ -70,58 +64,37 @@ const BUILTIN_MELODIES = [
 ];
 
 // ============================================================
-// User data helpers
+// Helper – get or create sound settings for a user
 // ============================================================
 
-function getUserDataPath(username) {
-    const safe = username.replace(/[^a-zA-Z0-9א-ת_-]/g, '_');
-    return path.join(USERDATA_DIR, `${safe}.json`);
-}
-
-function loadUserData(username) {
-    const filePath = getUserDataPath(username);
-    try {
-        if (!fs.existsSync(filePath)) return getDefaultUserData();
-        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    } catch {
-        return getDefaultUserData();
+async function getUserSettings(username) {
+    let doc = await SoundSettings.findOne({ username });
+    if (!doc) {
+        doc = new SoundSettings({ username });
+        await doc.save();
     }
-}
-
-function saveUserData(username, data) {
-    const filePath = getUserDataPath(username);
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
-}
-
-function getDefaultUserData() {
-    return {
-        // builtinMelodyId:  which builtin melody is selected (null = none)
-        // builtinActive:    true = builtin plays, false = uploaded song plays
-        alert: { cities: [], songFile: null, builtinMelodyId: null, builtinActive: false },
-        early: { cities: [], songFile: null, builtinMelodyId: null, builtinActive: false },
-        clear: { cities: [], songFile: null, builtinMelodyId: null, builtinActive: false },
-    };
-}
-
-// Migrate old user data that lacks new fields
-function migrateUserData(data) {
-    ['alert', 'early', 'clear'].forEach(t => {
-        if (!data[t]) data[t] = getDefaultUserData()[t];
-        if (data[t].builtinMelodyId === undefined) data[t].builtinMelodyId = null;
-        if (data[t].builtinActive   === undefined) data[t].builtinActive   = false;
-    });
-    return data;
+    return doc;
 }
 
 // ============================================================
 // GET /api/sound/userdata?username=xxx
 // ============================================================
 
-router.get('/userdata', (req, res) => {
+router.get('/userdata', async (req, res) => {
     const { username } = req.query;
     if (!username) return res.status(400).json({ error: 'missing username' });
-    const data = migrateUserData(loadUserData(username));
-    res.json(data);
+
+    try {
+        const doc = await getUserSettings(username);
+        res.json({
+            alert: doc.alert,
+            early: doc.early,
+            clear: doc.clear,
+        });
+    } catch (err) {
+        console.error('[soundRoutes] userdata error:', err.message);
+        res.status(500).json({ error: 'server error' });
+    }
 });
 
 // ============================================================
@@ -129,16 +102,21 @@ router.get('/userdata', (req, res) => {
 // body: { username, alertType, cities }
 // ============================================================
 
-router.post('/cities', (req, res) => {
+router.post('/cities', async (req, res) => {
     const { username, alertType, cities } = req.body;
     if (!username || !alertType) return res.status(400).json({ error: 'missing params' });
 
-    const data = migrateUserData(loadUserData(username));
-    if (!data[alertType]) data[alertType] = getDefaultUserData()[alertType];
-    data[alertType].cities = cities || [];
-    saveUserData(username, data);
-
-    res.json({ success: true });
+    try {
+        await SoundSettings.findOneAndUpdate(
+            { username },
+            { $set: { [`${alertType}.cities`]: cities || [] } },
+            { upsert: true, new: true }
+        );
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[soundRoutes] cities error:', err.message);
+        res.status(500).json({ error: 'server error' });
+    }
 });
 
 // ============================================================
@@ -146,48 +124,63 @@ router.post('/cities', (req, res) => {
 // body: { username, alertType, builtinMelodyId, builtinActive }
 // ============================================================
 
-router.post('/builtin', (req, res) => {
+router.post('/builtin', async (req, res) => {
     const { username, alertType, builtinMelodyId, builtinActive } = req.body;
     if (!username || !alertType) return res.status(400).json({ error: 'missing params' });
 
-    const data = migrateUserData(loadUserData(username));
-    if (!data[alertType]) data[alertType] = getDefaultUserData()[alertType];
-    data[alertType].builtinMelodyId = builtinMelodyId ?? null;
-    data[alertType].builtinActive   = !!builtinActive;
-    saveUserData(username, data);
-
-    res.json({ success: true });
+    try {
+        await SoundSettings.findOneAndUpdate(
+            { username },
+            {
+                $set: {
+                    [`${alertType}.builtinMelodyId`]: builtinMelodyId ?? null,
+                    [`${alertType}.builtinActive`]:   !!builtinActive,
+                }
+            },
+            { upsert: true, new: true }
+        );
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[soundRoutes] builtin error:', err.message);
+        res.status(500).json({ error: 'server error' });
+    }
 });
 
 // ============================================================
 // POST /api/sound/upload?username=xxx&alertType=alert
 // ============================================================
 
-router.post('/upload', (req, res) => {
+router.post('/upload', async (req, res) => {
     if (!upload) return res.status(500).json({ error: 'multer not installed' });
 
-    upload.single('song')(req, res, (err) => {
+    upload.single('song')(req, res, async (err) => {
         if (err) return res.status(400).json({ error: err.message });
         if (!req.file) return res.status(400).json({ error: 'no file uploaded' });
 
         const { username, alertType } = req.query;
         if (!username || !alertType) return res.status(400).json({ error: 'missing params' });
 
-        const data = migrateUserData(loadUserData(username));
-        if (!data[alertType]) data[alertType] = getDefaultUserData()[alertType];
-
-        // Delete old file
-        if (data[alertType].songFile) {
-            const oldPath = path.join(SOUNDS_DIR, data[alertType].songFile);
-            if (fs.existsSync(oldPath)) {
-                try { fs.unlinkSync(oldPath); } catch {}
+        try {
+            // Delete old file from disk if exists
+            const existing = await SoundSettings.findOne({ username });
+            if (existing && existing[alertType]?.songFile) {
+                const oldPath = path.join(SOUNDS_DIR, existing[alertType].songFile);
+                if (fs.existsSync(oldPath)) {
+                    try { fs.unlinkSync(oldPath); } catch {}
+                }
             }
+
+            await SoundSettings.findOneAndUpdate(
+                { username },
+                { $set: { [`${alertType}.songFile`]: req.file.filename } },
+                { upsert: true, new: true }
+            );
+
+            res.json({ success: true, filename: req.file.filename });
+        } catch (err) {
+            console.error('[soundRoutes] upload error:', err.message);
+            res.status(500).json({ error: 'server error' });
         }
-
-        data[alertType].songFile = req.file.filename;
-        saveUserData(username, data);
-
-        res.json({ success: true, filename: req.file.filename });
     });
 });
 
@@ -195,21 +188,27 @@ router.post('/upload', (req, res) => {
 // DELETE /api/sound/song?username=xxx&alertType=alert
 // ============================================================
 
-router.delete('/song', (req, res) => {
+router.delete('/song', async (req, res) => {
     const { username, alertType } = req.query;
     if (!username || !alertType) return res.status(400).json({ error: 'missing params' });
 
-    const data = migrateUserData(loadUserData(username));
-    if (data[alertType]?.songFile) {
-        const filePath = path.join(SOUNDS_DIR, data[alertType].songFile);
-        if (fs.existsSync(filePath)) {
-            try { fs.unlinkSync(filePath); } catch {}
+    try {
+        const doc = await SoundSettings.findOne({ username });
+        if (doc && doc[alertType]?.songFile) {
+            const filePath = path.join(SOUNDS_DIR, doc[alertType].songFile);
+            if (fs.existsSync(filePath)) {
+                try { fs.unlinkSync(filePath); } catch {}
+            }
+            await SoundSettings.findOneAndUpdate(
+                { username },
+                { $set: { [`${alertType}.songFile`]: null } }
+            );
         }
-        data[alertType].songFile = null;
-        saveUserData(username, data);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[soundRoutes] delete error:', err.message);
+        res.status(500).json({ error: 'server error' });
     }
-
-    res.json({ success: true });
 });
 
 // ============================================================
@@ -223,14 +222,13 @@ router.get('/file/:filename', (req, res) => {
     if (!filePath.startsWith(path.resolve(SOUNDS_DIR))) {
         return res.status(400).json({ error: 'invalid request' });
     }
-
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'file not found' });
 
     res.sendFile(filePath);
 });
 
 // ============================================================
-// GET /api/sound/builtin/:filename  – serve built-in melodies
+// GET /api/sound/builtin/:filename
 // ============================================================
 
 router.get('/builtin/:filename', (req, res) => {
@@ -240,14 +238,13 @@ router.get('/builtin/:filename', (req, res) => {
     if (!filePath.startsWith(path.resolve(BUILTIN_DIR))) {
         return res.status(400).json({ error: 'invalid request' });
     }
-
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'file not found' });
 
     res.sendFile(filePath);
 });
 
 // ============================================================
-// GET /api/sound/melodies  – return the built-in melodies list
+// GET /api/sound/melodies
 // ============================================================
 
 router.get('/melodies', (req, res) => {
