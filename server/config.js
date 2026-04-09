@@ -2,6 +2,7 @@
 // config.js  – כל הקבועים והפרמטרים של השרת במקום אחד
 // שינוי זמנים, URLs ופרמטרים – רק כאן!
 // ============================================================
+
 const path = require('path');
 
 module.exports = {
@@ -12,10 +13,19 @@ module.exports = {
 
     // --- כותרות HTTP לבקשות לאורף (מחקות דפדפן) ---
     OREF_HEADERS: {
-        'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer':         'https://www.oref.org.il/12481-he/Pakar.aspx',
-        'X-Requested-With':'XMLHttpRequest',
-        'Content-Type':    'application/json'
+        'User-Agent':       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+        'Referer':          'https://www.oref.org.il/',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept':           'application/json, text/plain, */*',
+        'Accept-Language':  'he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept-Encoding':  'gzip, deflate, br',
+        'Connection':       'keep-alive',
+        'sec-ch-ua':        '"Google Chrome";v="123", "Not:A-Brand";v="8", "Chromium";v="123"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'Sec-Fetch-Dest':   'empty',
+        'Sec-Fetch-Mode':   'cors',
+        'Sec-Fetch-Site':   'same-origin',
     },
 
     // --- זמנים (מילישניות) ---
@@ -32,5 +42,5 @@ module.exports = {
     CITIES_FILE: path.join(__dirname, 'cities.json'),
 
     // --- שרת ---
-    PORT: 3000,
+    PORT: process.env.PORT || 3000,
 };
