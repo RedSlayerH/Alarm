@@ -13,13 +13,37 @@ const httpsAgent = new https.Agent({ keepAlive: true });
 // מונע עיבוד אותה אזעקה פעמיים
 let lastProcessedEventId = null;
 
+// Last known real client IP (updated when clients poll /api/state)
+let lastClientIP = null;
+
+function setLastClientIP(ip) {
+    if (ip && ip !== '::1' && ip !== '127.0.0.1') {
+        lastClientIP = ip;
+    }
+}
+
+// ============================================================
+// Build headers – inject real client IP if available
+// ============================================================
+
+function buildHeaders(clientIP) {
+    const ip = clientIP || lastClientIP;
+    const headers = { ...OREF_HEADERS };
+    if (ip) {
+        headers['X-Forwarded-For'] = ip;
+        headers['X-Real-IP']       = ip;
+        headers['Client-IP']       = ip;
+    }
+    return headers;
+}
+
 // ============================================================
 // טעינת היסטוריה ראשונית בהפעלת השרת
 // ============================================================
 
 async function fetchOfficialHistory() {
     try {
-        const res = await axios.get(OREF_HISTORY_URL, { headers: OREF_HEADERS, httpsAgent });
+        const res = await axios.get(OREF_HISTORY_URL, { headers: buildHeaders(), httpsAgent });
         if (res.data && Array.isArray(res.data)) {
             processOfficialHistory(res.data);
             console.log(`[orefPoller] נטענו ${res.data.length} רשומות היסטוריה`);
@@ -35,7 +59,7 @@ async function fetchOfficialHistory() {
 
 async function pollOref() {
     try {
-        const res = await axios.get(OREF_ALERTS_URL, { headers: OREF_HEADERS, httpsAgent });
+        const res = await axios.get(OREF_ALERTS_URL, { headers: buildHeaders(), httpsAgent });
 
         let data = res.data;
 
@@ -51,7 +75,7 @@ async function pollOref() {
         if (data.id === lastProcessedEventId) return;
         lastProcessedEventId = data.id;
 
-        const cities = data.data.map(c => c.trim ? c.trim() : c); // תמיכה ב-array של strings
+        const cities = data.data.map(c => c.trim ? c.trim() : c);
         const title  = data.title || 'התרעת פיקוד העורף';
 
         console.log(`[orefPoller] אזעקה חדשה | ID: ${data.id} | כותרת: ${title} | ערים: ${cities.join(', ')}`);
@@ -65,9 +89,21 @@ async function pollOref() {
         }
 
     } catch (err) {
-        // שקט במפורש – שגיאות רשת הן שגרתיות
         console.warn('[orefPoller] שגיאת polling:', err.message);
     }
 }
 
-module.exports = { fetchOfficialHistory, pollOref };
+// ============================================================
+// Proxy – forwards oref requests with real client IP
+// ============================================================
+
+async function proxyOrefRequest(url, clientIP) {
+    const res = await axios.get(url, {
+        headers: buildHeaders(clientIP),
+        httpsAgent,
+        validateStatus: null,
+    });
+    return { status: res.status, data: res.data };
+}
+
+module.exports = { fetchOfficialHistory, pollOref, proxyOrefRequest, setLastClientIP };
