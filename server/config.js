@@ -2,6 +2,7 @@
 // config.js  – כל הקבועים והפרמטרים של השרת במקום אחד
 // שינוי זמנים, URLs ופרמטרים – רק כאן!
 // ============================================================
+const path = require('path');
 
 module.exports = {
 
@@ -28,7 +29,7 @@ module.exports = {
     MAX_HISTORY_SIZE:        200,           // מקסימום רשומות בהיסטוריה (מניעת דליפת זיכרון)
 
     // --- קבצים ---
-    CITIES_FILE: './cities.json',
+    CITIES_FILE: path.join(__dirname, 'cities.json'),
 
     // --- שרת ---
     PORT: 3000,

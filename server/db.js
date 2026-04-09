@@ -2,6 +2,8 @@
 // db.js – MongoDB connection using mongoose
 // ============================================================
 
+require('dns').setServers(['8.8.8.8', '8.8.4.4']);
+
 const mongoose = require('mongoose');
 
 async function connectDB() {

@@ -2,6 +2,8 @@
 // server.js – main server entry point
 // ============================================================
 
+require('dotenv').config(); // loads .env file for local development
+
 const express    = require('express');
 const cors       = require('cors');
 const fs         = require('fs');
@@ -65,7 +67,7 @@ async function loadCitiesMapping() {
 // ============================================================
 
 async function start() {
-    await connectDB();              // connect to MongoDB first
+    await connectDB();
     await loadCitiesMapping();
     await fetchOfficialHistory();
     setInterval(pollOref, config.POLL_INTERVAL_MS);
