@@ -5,4 +5,4 @@
 
 const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://localhost:3000'
-    : 'https://alarm-production-663a.up.railway.app';
+    : 'https://alarm-production-158b.up.railway.app';
