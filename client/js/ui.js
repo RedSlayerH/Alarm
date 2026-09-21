@@ -152,7 +152,7 @@ function buildCardContent(event, cityToRegionFn) {
         return {
             colorTheme,
             iconsHtml,
-            mainTitle:  regions.length > 0 ? regions.join(', ') : (titles.join(' | ') || threat.label),
+            mainTitle:  regions.length > 0 ? regions.join(', ') : (text || titles.join(' | ') || threat.label),
             citiesHtml: buildClickableCities(text, cityToRegionFn),
         };
     }
@@ -183,29 +183,32 @@ function buildCardContent(event, cityToRegionFn) {
     // clear
     const parts = text.split(',').map(s => s.trim()).filter(Boolean);
     let citiesHtml;
-    if (parts.length > 3) {
-        const regions = [...new Set(parts.map(cityToRegionFn).filter(Boolean))];
-        // ערים שאין להן אזור – נציג אותן בנפרד בעיצוב בולט
-        const unresolved = [...new Set(parts.filter(p => !cityToRegionFn(p)))];
-        let display;
-        if (regions.length > 0 && unresolved.length > 0) {
-            display = [...regions, ...unresolved].join(', ');
-        } else if (regions.length > 0) {
-            display = regions.join(', ');
-        } else {
-            display = unresolved.join(', ') || text;
-        }
-        citiesHtml = `האירוע הסתיים באזורים: <b>${display}</b>`;
-    } else if (parts.length > 1) {
-        // כל מיקום – עיר או לא – מוצג בבולד
-        citiesHtml = `האירוע הסתיים ב${buildClickableCities(text, cityToRegionFn, 'font-weight:bold;color:#222;', true)}`;
-    } else if (parts.length === 1) {
-        const isCity = !!cityToRegionFn(parts[0]);
-        citiesHtml = isCity
-            ? `האירוע הסתיים ב<span class="city-link" data-city="${parts[0]}" style="font-weight:bold;color:#222;">${parts[0]}</span>`
-            : `האירוע הסתיים באזור <b>${parts[0]}</b>`;
-    } else {
+
+    if (parts.length === 0) {
         citiesHtml = 'האירוע הסתיים.';
+    } else if (parts.length <= 3) {
+        // ≤3 יישובים – הצג שמות ערים בפועל
+        if (parts.length === 1) {
+            const isCity = !!cityToRegionFn(parts[0]);
+            citiesHtml = isCity
+                ? `האירוע הסתיים ב<span class="city-link" data-city="${parts[0]}" style="font-weight:bold;color:#222;">${parts[0]}</span>`
+                : `האירוע הסתיים באזור <b>${parts[0]}</b>`;
+        } else {
+            citiesHtml = `האירוע הסתיים ב${buildClickableCities(text, cityToRegionFn, 'font-weight:bold;color:#222;', true)}`;
+        }
+    } else {
+        // >3 יישובים – קבץ לאזורים
+        const regions    = [...new Set(parts.map(cityToRegionFn).filter(Boolean))];
+        const unresolved = [...new Set(parts.filter(p => !cityToRegionFn(p)))];
+        const allDisplay = [...regions, ...unresolved];
+
+        if (allDisplay.length > 1) {
+            citiesHtml = `האירוע הסתיים באזורים: <b>${allDisplay.join(', ')}</b>`;
+        } else if (allDisplay.length === 1) {
+            citiesHtml = `האירוע הסתיים באזור <b>${allDisplay[0]}</b>`;
+        } else {
+            citiesHtml = 'האירוע הסתיים.';
+        }
     }
     return {
         colorTheme: threat.color,

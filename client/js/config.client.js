@@ -3,6 +3,6 @@
 // כדי לשנות את כתובת ה-production, שנה רק כאן!
 // ============================================================
 
-const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://localhost:3000'
-    : 'https://alarm-production-158b.up.railway.app';
+const API_BASE = window.location.hostname.includes('railway.app')
+    ? 'https://alarm-production-158b.up.railway.app'
+    : window.location.origin;

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="he" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>צ'אט | מפת אזעקות</title>
+    <link rel="stylesheet" href="client/css/chat-app.css">
+    <link rel="stylesheet" href="client/css/shop.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     STAR TRANSITION OVERLAY (back to map)
+════════════════════════════════════════════ -->
+<div id="star-overlay" class="star-overlay hidden">
+    <canvas id="star-canvas"></canvas>
+    <div class="star-label" id="star-label">חוזר למפה</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     DISCORD-LIKE LAYOUT
+     [server-list] [channel-list] [chat-area]
+════════════════════════════════════════════ -->
+<div id="app">
+
+    <!-- ── Far-left: server/app icons ── -->
+    <nav id="server-list">
+
+        <!-- Back to map button (replaces the two arrows) -->
+        <div class="server-icon back-btn" id="back-to-map" title="חזרה למפה">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            <span class="server-tooltip">חזרה למפה</span>
+        </div>
+
+        <div class="server-divider"></div>
+
+        <!-- General chat — active server -->
+        <div class="server-icon" id="srv-general" data-room="general" title="צ'אט כללי">
+            <img src="client/img/chat-icon.png" onerror="this.style.display='none';this.parentElement.querySelector('.srv-letter').style.display='flex'" alt="">
+            <span class="srv-letter">💬</span>
+            <span class="server-tooltip">צ'אט כללי</span>
+            <div class="server-unread" id="srv-unread-general"></div>
+        </div>
+
+        <div class="server-divider"></div>
+
+        <!-- Coming-soon servers -->
+        <div class="server-icon locked" title="פרטי — בקרוב">
+            <span class="srv-letter">👤</span>
+            <span class="server-tooltip">פרטי — בקרוב</span>
+        </div>
+        <div class="server-icon locked" title="קבוצות — בקרוב">
+            <span class="srv-letter">👥</span>
+            <span class="server-tooltip">קבוצות — בקרוב</span>
+        </div>
+        <div class="server-icon locked" title="גיימינג — בקרוב">
+            <span class="srv-letter">🎮</span>
+            <span class="server-tooltip">גיימינג — בקרוב</span>
+        </div>
+        <div class="server-icon locked" title="היכרויות — בקרוב">
+            <span class="srv-letter">❤️</span>
+            <span class="server-tooltip">היכרויות — בקרוב</span>
+        </div>
+
+    </nav>
+
+    <!-- ── Channel sidebar ── -->
+    <aside id="channel-list">
+        <div id="channel-header">
+            <span id="channel-server-name">📢 מודעות</span>
+        </div>
+        <div id="channel-items">
+
+            <!-- Discord-style nav items -->
+            <div class="disc-nav-item">
+                <svg class="disc-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                </svg>
+                <span>חברים</span>
+            </div>
+
+            <div class="disc-nav-item disc-nav-premium">
+                <svg class="disc-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+                </svg>
+                <span>פרימיום</span>
+                <span class="disc-nav-badge">הצעה</span>
+            </div>
+
+            <div class="disc-nav-item">
+                <svg class="disc-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2S15.9 22 17 22s2-.9 2-2-.9-2-2-2zM7.2 14.8l.03-.12.97-1.68H16c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0 0 20.46 4H5.21L4.27 2H1v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96C5 16.1 6.9 18 9.2 18H19v-2H9.17c-.17 0-.31-.14-.31-.31l.34-.89z"/>
+                </svg>
+                <span>חנות</span>
+            </div>
+
+            <div class="disc-nav-item">
+                <svg class="disc-nav-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V18H7v2h10v-2h-4v-2.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/>
+                </svg>
+                <span>הישגים</span>
+            </div>
+
+            <!-- DM separator + list -->
+            <div class="dm-separator"></div>
+            <div class="dm-header-row">
+                <span class="dm-section-title">הודעות ישירות</span>
+            </div>
+            <div id="dm-list"></div>
+
+        </div>
+
+        <!-- User card at bottom of sidebar -->
+        <div id="user-card">
+            <div id="user-card-avatar" class="uc-avatar"></div>
+            <div id="user-card-info">
+                <div id="user-card-name">—</div>
+                <div id="user-card-status">מחובר</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ═══════════════════════════════════════════
+         PROFILE MINI POPUP (single click)
+    ════════════════════════════════════════════ -->
+    <div id="profile-mini-popup" class="profile-mini-popup hidden">
+        <div class="pmp-banner"></div>
+        <div class="pmp-avatar-wrap">
+            <div class="pmp-avatar" id="pmp-avatar"></div>
+        </div>
+        <div class="pmp-info">
+            <div class="pmp-username" id="pmp-username"></div>
+            <div class="pmp-tag" id="pmp-tag"></div>
+        </div>
+        <div class="pmp-divider"></div>
+        <div class="pmp-actions">
+            <button class="pmp-btn pmp-btn-message" id="pmp-btn-message">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4C2.9 2 2 2.9 2 4v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+                הודעה
+            </button>
+            <button class="pmp-btn pmp-btn-addfriend" id="pmp-btn-addfriend">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                הוסף חבר
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+         PROFILE FULL POPUP (double click)
+    ════════════════════════════════════════════ -->
+    <div id="profile-full-backdrop" class="profile-full-backdrop hidden">
+        <div id="profile-full-popup" class="profile-full-popup">
+            <div class="pfp-banner"></div>
+            <div class="pfp-top">
+                <div class="pfp-avatar" id="pfp-avatar"></div>
+                <div class="pfp-top-actions">
+                    <button class="pfp-action-btn" id="pfp-btn-addfriend" title="הוסף חבר">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                    </button>
+                    <button class="pfp-action-btn pfp-msg-btn" id="pfp-btn-message" title="שלח הודעה">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4C2.9 2 2 2.9 2 4v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="pfp-body">
+                <div class="pfp-username" id="pfp-username"></div>
+                <div class="pfp-tag" id="pfp-tag"></div>
+                <div class="pfp-divider"></div>
+                <div class="pfp-section-title">חבר מאז</div>
+                <div class="pfp-since" id="pfp-since"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+         MESSAGE INPUT POPUP (when clicking "הודעה" in mini popup)
+    ════════════════════════════════════════════ -->
+    <div id="msg-input-popup" class="msg-input-popup hidden">
+        <div class="mip-header" id="mip-drag-handle">
+            <span>שלח הודעה ל-<strong id="mip-username"></strong></span>
+            <button id="mip-close">✕</button>
+        </div>
+        <div class="mip-body">
+            <textarea id="mip-textarea" placeholder="כתוב הודעה..." rows="3" dir="auto"></textarea>
+        </div>
+        <div class="mip-footer">
+            <button class="mip-cancel" id="mip-cancel">ביטול</button>
+            <button class="mip-send" id="mip-send">לשלוח הודעה</button>
+        </div>
+    </div>
+
+    <!-- ── Main chat area ── -->
+    <main id="chat-main">
+
+        <!-- Top bar -->
+        <div id="chat-topbar">
+            <span class="topbar-hash">#</span>
+            <span id="topbar-channel-name">כללי</span>
+            <span id="topbar-desc">צ'אט חי עם משתמשים מהאתר</span>
+        </div>
+
+        <!-- Messages -->
+        <div id="app-messages"></div>
+
+        <!-- Input -->
+        <div id="app-input-wrap">
+            <textarea id="app-textarea"
+                      placeholder="שלח הודעה ל-#כללי"
+                      rows="1"
+                      dir="auto"></textarea>
+            <button id="app-send-btn">
+                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+        </div>
+
+    </main>
+
+</div>
+
+<script src="client/js/config.client.js"></script>
+<script src="client/js/chat-app.js"></script>
+<script src="client/js/shop.js"></script>
+</body>
+</html>

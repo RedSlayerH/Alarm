@@ -2,12 +2,14 @@
 // server.js – main server entry point
 // ============================================================
 
-require('dotenv').config(); // loads .env file for local development
+require('dotenv').config();
 
 const express    = require('express');
 const cors       = require('cors');
 const fs         = require('fs');
 const path       = require('path');
+const session    = require('express-session');
+const passport   = require('passport');
 
 const config     = require('./config');
 const state      = require('./state');
@@ -16,10 +18,22 @@ const { fetchOfficialHistory, pollOref, proxyOrefRequest, setLastClientIP } = re
 const testRoutes  = require('./testRoutes');
 const authRoutes  = require('./auth');
 const soundRoutes = require('./soundRoutes');
+const chatRoutes  = require('./chatRoutes');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Session (required for passport)
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'livealert_secret_key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 },
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Serve static client files from root
 app.use(express.static(path.join(__dirname, '..')));
@@ -31,6 +45,7 @@ app.use(express.static(path.join(__dirname, '..')));
 app.use('/api/auth',  authRoutes);
 app.use('/api/test',  testRoutes);
 app.use('/api/sound', soundRoutes);
+app.use('/api/chat',  chatRoutes);
 
 app.get('/api/state', (req, res) => {
     // Track real client IP for oref proxy

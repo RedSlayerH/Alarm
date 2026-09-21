@@ -26,8 +26,10 @@ async function connectDB() {
 // ============================================================
 
 const userSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true, trim: true },
-    password: { type: String, required: true },
+    username:   { type: String, required: true, unique: true, trim: true },
+    password:   { type: String, default: null },
+    googleId:   { type: String, default: null },
+    avatar:     { type: String, default: null },
 }, { timestamps: true });
 
 // ============================================================
@@ -48,7 +50,19 @@ const soundSettingsSchema = new mongoose.Schema({
     clear:    { type: soundTypeSchema, default: () => ({}) },
 }, { timestamps: true });
 
+// ============================================================
+// Chat message schema
+// ============================================================
+
+const chatMessageSchema = new mongoose.Schema({
+    room:     { type: String, required: true, index: true }, // e.g. 'general'
+    username: { type: String, required: true },
+    text:     { type: String, required: true },
+    sentAt:   { type: Date,   default: Date.now },
+});
+
 const User          = mongoose.model('User',          userSchema);
 const SoundSettings = mongoose.model('SoundSettings', soundSettingsSchema);
+const ChatMessage   = mongoose.model('ChatMessage',   chatMessageSchema);
 
-module.exports = { connectDB, User, SoundSettings };
+module.exports = { connectDB, User, SoundSettings, ChatMessage };

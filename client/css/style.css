@@ -181,9 +181,15 @@ body, html {
     padding: 0; width: 45px; height: 45px;
     border-radius: 50%;
     display: flex; justify-content: center; align-items: center;
+    overflow: hidden;
 }
 #auth-button.logged-in svg { width: 28px; height: 28px; fill: #ccc; margin-top: 4px; }
 #auth-button.logged-in:hover svg { fill: white; }
+#auth-button.logged-in img {
+    width: 45px; height: 45px;
+    object-fit: cover;
+    display: block;
+}
 
 /* =========================================
    Auth Modal
@@ -214,6 +220,39 @@ body, html {
 .submit-btn { padding: 12px; background: #388e3c; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1em; margin-top: 5px; }
 .submit-btn:hover { background: #2e7d32; }
 #auth-msg { margin-top: 15px; font-size: 0.9em; min-height: 20px; font-weight: bold; }
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #555;
+    font-size: 12px;
+}
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #3a3d44;
+}
+
+.google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 11px;
+    background: #fff;
+    color: #333;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95em;
+    font-family: inherit;
+    transition: background 0.15s;
+}
+.google-btn:hover { background: #f0f0f0; }
 
 /* =========================================
    אנימציות Glow לפוליגונים

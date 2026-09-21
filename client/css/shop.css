@@ -1,0 +1,340 @@
+/* ============================================================
+   shop.css – Cosmetics Shop + Avatar Accessories
+   ============================================================ */
+
+/* ── Shop Panel Overlay ──────────────────────────────────── */
+#shop-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 7000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+    animation: shopFadeIn 0.2s ease-out;
+}
+#shop-panel.hidden { display: none; }
+
+@keyframes shopFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.shop-modal {
+    background: #1e1f22;
+    border-radius: 16px;
+    width: 640px;
+    max-width: 95vw;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 16px 60px rgba(0, 0, 0, 0.8);
+    animation: shopSlideIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    overflow: hidden;
+}
+
+@keyframes shopSlideIn {
+    from { opacity: 0; transform: scale(0.88) translateY(20px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);    }
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.shop-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #2e3035;
+    flex-shrink: 0;
+}
+
+.shop-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.shop-header-icon {
+    font-size: 28px;
+    line-height: 1;
+}
+
+.shop-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #f2f3f5;
+}
+
+.shop-subtitle {
+    font-size: 12px;
+    color: #72767d;
+    margin-top: 2px;
+}
+
+.shop-close-btn {
+    background: none;
+    border: none;
+    color: #72767d;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 6px;
+    line-height: 1;
+    transition: background 0.15s, color 0.15s;
+}
+.shop-close-btn:hover {
+    background: #2e3035;
+    color: #f2f3f5;
+}
+
+/* ── Tabs ───────────────────────────────────────────────── */
+.shop-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 12px 24px 0;
+    border-bottom: 1px solid #2e3035;
+    flex-shrink: 0;
+}
+
+.shop-tab {
+    padding: 8px 16px;
+    background: none;
+    border: none;
+    color: #72767d;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+    border-radius: 4px 4px 0 0;
+}
+.shop-tab:hover { color: #dcddde; }
+.shop-tab.active {
+    color: #fff;
+    border-bottom-color: #5865f2;
+}
+
+/* ── Body / Grid ────────────────────────────────────────── */
+.shop-body {
+    padding: 20px 24px;
+    overflow-y: auto;
+    flex: 1;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.07) transparent;
+}
+.shop-body::-webkit-scrollbar { width: 6px; }
+.shop-body::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.08);
+    border-radius: 4px;
+}
+
+.shop-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #72767d;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+}
+
+.shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+/* ── Shop Item Card ─────────────────────────────────────── */
+.shop-item {
+    background: #2b2d31;
+    border-radius: 12px;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    border: 2px solid transparent;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    cursor: default;
+    position: relative;
+}
+
+.shop-item:hover {
+    background: #313438;
+    transform: translateY(-2px);
+}
+
+.shop-item.equipped {
+    border-color: #5865f2;
+    background: #2a2c3a;
+}
+
+.shop-item-preview {
+    width: 72px;
+    height: 72px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.shop-item-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #dcddde;
+    text-align: center;
+    line-height: 1.3;
+}
+
+.shop-item-tag {
+    font-size: 11px;
+    font-weight: 700;
+    color: #3ba55d;
+    background: rgba(59, 165, 93, 0.15);
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+.shop-item-tag.premium {
+    color: #faa61a;
+    background: rgba(250, 166, 26, 0.15);
+}
+
+.shop-item-btn {
+    width: 100%;
+    padding: 7px 0;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+}
+.shop-item-btn:active { transform: scale(0.97); }
+
+.shop-item-btn.equip {
+    background: #5865f2;
+    color: #fff;
+}
+.shop-item-btn.equip:hover { background: #4752c4; }
+
+.shop-item-btn.remove {
+    background: #2e3035;
+    color: #dcddde;
+}
+.shop-item-btn.remove:hover { background: #ed4245; color: #fff; }
+
+/* Equipped badge (top-right corner) */
+.shop-item-equipped-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    background: #5865f2;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+}
+
+/* ── Currently Equipped Preview (top of shop) ───────────── */
+.shop-equipped-preview {
+    background: #2b2d31;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.sep-label {
+    font-size: 12px;
+    color: #72767d;
+    margin-bottom: 4px;
+}
+
+.sep-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f2f3f5;
+}
+
+.sep-avatar-demo {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #4a6fa5;
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+}
+
+/* ── Avatar Accessory (in chat) ─────────────────────────── */
+.avatar-wrap {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+}
+
+.avatar-accessory {
+    position: absolute;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* ── SPRITES ─────────────────────────────────────────────── */
+
+/* ── Shared keyframes ────────────────────────────────────── */
+@keyframes spriteBob {
+    0%,100% { transform: translateY(0px); }
+    50%      { transform: translateY(-4px); }
+}
+@keyframes spriteFloat {
+    0%,100% { transform: translateY(0px) rotate(-3deg); }
+    50%      { transform: translateY(-6px) rotate(3deg); }
+}
+@keyframes crownPulse {
+    0%,100% { filter: drop-shadow(0 0 4px rgba(255,210,0,0.7)); }
+    50%      { filter: drop-shadow(0 0 10px rgba(255,210,0,1)); }
+}
+@keyframes darkCrownPulse {
+    0%,100% { filter: drop-shadow(0 0 4px rgba(150,0,255,0.7)); }
+    50%      { filter: drop-shadow(0 0 10px rgba(150,0,255,1)); }
+}
+
+/* ── POKÉMON ─────────────────────────────────────────────── */
+.sprite-pikachu { width:36px; height:36px; bottom:-12px; right:-14px; image-rendering:pixelated; }
+.sprite-charizard { width:44px; height:46px; bottom:-16px; right:-18px; image-rendering:pixelated; }
+.sprite-mewtwo { width:44px; height:28px; bottom:-10px; right:-18px; image-rendering:pixelated; }
+.sprite-rayquaza { width:38px; height:34px; bottom:-14px; right:-16px; image-rendering:pixelated; }
+.sprite-mega-rayquaza-shiny { width:46px; height:50px; bottom:-20px; right:-20px; image-rendering:pixelated; }
+.sprite-reshiram { width:40px; height:32px; bottom:-12px; right:-16px; image-rendering:pixelated; }
+.sprite-zekrom { width:42px; height:42px; bottom:-16px; right:-18px; image-rendering:pixelated; }
+.sprite-giratina { width:48px; height:44px; bottom:-8px; right:-20px; image-rendering:pixelated; }
+.sprite-giratina-shiny { width:40px; height:38px; bottom:-14px; right:-16px; image-rendering:pixelated; }
+.sprite-darkrai { width:50px; height:44px; bottom:-18px; right:-22px; image-rendering:pixelated; }
+
+/* ── OTHER ───────────────────────────────────────────────── */
+.sprite-patrick { width:44px; height:44px; bottom:-16px; right:-18px; image-rendering:pixelated; }
+.sprite-umbrella { width:48px; height:48px; top:-30px; left:50%; transform:translateX(-50%); image-rendering:pixelated; }
+.sprite-flame-bird { width:48px; height:48px; bottom:-18px; right:-20px; image-rendering:pixelated; }
+
+/* ── CROWNS ─────────────────────────────────────────────── */
+.sprite-crown { width:36px; height:36px; top:-28px; left:50%; transform:translateX(-50%); image-rendering:pixelated; }
+.sprite-dark-crown { width:38px; height:34px; top:-28px; left:50%; transform:translateX(-50%); image-rendering:pixelated; }
+
+/* ── User card avatar accessory (smaller) ───────────────── */
+.uc-avatar-wrap { position:relative; width:38px; height:38px; flex-shrink:0; }
+.uc-avatar-wrap .avatar-accessory { transform:scale(0.8); }
+
+/* ── Profile popup accessory ────────────────────────────── */
+.pmp-avatar-wrap-inner, .pfp-avatar-wrap-inner { position:relative; display:inline-block; }
